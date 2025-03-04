@@ -1,1 +1,1 @@
-# bot_discord_ldc
+# bot_ldc
