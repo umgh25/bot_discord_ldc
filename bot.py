@@ -4,8 +4,8 @@ import json
 import os
 from dotenv import load_dotenv
 
-# # Charger les variables d'environnement
-# load_dotenv()
+# Charger les variables d'environnement
+load_dotenv()
 
 # Récupérer le token
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -32,7 +32,7 @@ def charger_votes():
 
 
 def sauvegarder_votes():
-    with open(VOTES_FILE, "w", encoding="utf-8") as f:
+    with open(VOTES_FILE, "w", encoding="utf-8") as f:²
         json.dump(votes, f, indent=4)
 
 # Charger les points depuis le fichier (s'il existe)
