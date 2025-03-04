@@ -4,8 +4,8 @@ import json
 import os
 from dotenv import load_dotenv
 
-# Charger les variables d'environnement
-load_dotenv()
+# # Charger les variables d'environnement
+# load_dotenv()
 
 # Récupérer le token
 TOKEN = os.getenv('DISCORD_TOKEN')
