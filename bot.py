@@ -3,12 +3,19 @@ from discord.ext import commands
 import json
 import os
 from dotenv import load_dotenv
+from pathlib import Path
+
+# Obtenir le chemin absolu du fichier .env
+env_path = Path('.') / '.env'
 
 # Charger les variables d'environnement
-load_dotenv()
+load_dotenv(dotenv_path=env_path)
 
 # Récupérer le token
-TOKEN = "MTM0NjIwMTYwNzMxNDA4MzkyMA.Gl-KrA.k_6pYNTyGuhPYYTyHR-By48xzz4ipsH0fjwW80"  # Token direct pour test
+TOKEN = os.getenv('DISCORD_TOKEN')
+if not TOKEN:
+    raise ValueError("Le token Discord n'est pas configuré dans les variables d'environnement")
+
 
 # Fichier où stocker les votes
 VOTES_FILE = "votes.json"
