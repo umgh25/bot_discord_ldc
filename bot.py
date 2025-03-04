@@ -32,7 +32,7 @@ def charger_votes():
 
 
 def sauvegarder_votes():
-    with open(VOTES_FILE, "w", encoding="utf-8") as f:²
+    with open(VOTES_FILE, "w", encoding="utf-8") as f:
         json.dump(votes, f, indent=4)
 
 # Charger les points depuis le fichier (s'il existe)
