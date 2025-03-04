@@ -8,10 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Récupérer le token
-TOKEN = os.getenv('DISCORD_TOKEN')
-if not TOKEN:
-    raise ValueError("Le token Discord n'est pas configuré dans les variables d'environnement")
-
+TOKEN = "MTM0NjIwMTYwNzMxNDA4MzkyMA.Gl-KrA.k_6pYNTyGuhPYYTyHR-By48xzz4ipsH0fjwW80"  # Token direct pour test
 
 # Fichier où stocker les votes
 VOTES_FILE = "votes.json"
