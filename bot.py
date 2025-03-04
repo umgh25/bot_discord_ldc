@@ -11,6 +11,12 @@ env_path = Path('.') / '.env'
 # Charger les variables d'environnement
 load_dotenv(dotenv_path=env_path)
 
+# Récupérer le token
+TOKEN = os.getenv('DISCORD_TOKEN')
+print(f"Token trouvé : {'Oui' if TOKEN else 'Non'}")  # Pour déboguer
+
+if not TOKEN:
+    raise ValueError("Le token Discord n'est pas configuré dans les variables d'environnement")
 
 # Fichier où stocker les votes
 VOTES_FILE = "votes.json"
@@ -628,4 +634,4 @@ async def reset_points_error(ctx, error):
         await ctx.send("❌ Seuls les administrateurs peuvent réinitialiser les points.")
 
 # Lancement du bot avec le token
-bot.run(os.getenv('DISCORD_TOKEN'))
+bot.run(TOKEN)

@@ -1,7 +1,13 @@
-# env files (can opt-in for committing if needed)
-echo ".env
+# Fichiers d'environnement
+.env
+
+# Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-.Python" > .gitignore
+.Python
+
+# Autres fichiers à ignorer
+*.log
+.DS_Store
