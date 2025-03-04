@@ -5,4 +5,7 @@ cmds = [
 ]
 
 [start]
-cmd = "python bot.py"  # ou le nom de votre fichier principal
+cmd = "python3 bot.py"
+
+[phases.install]
+nixPkgs = ["python3", "python3Packages.pip"]
