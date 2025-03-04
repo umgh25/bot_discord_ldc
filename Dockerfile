@@ -7,7 +7,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+ENV DISCORD_TOKEN=${DISCORD_TOKEN}
+
 CMD ["python3", "bot.py"] 
 
-ENV DISCORD_TOKEN=${DISCORD_TOKEN}
 
