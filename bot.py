@@ -13,7 +13,9 @@ load_dotenv(dotenv_path=env_path)
 
 # Récupérer le token
 TOKEN = os.getenv('DISCORD_TOKEN')
-print(f"Token trouvé : {'Oui' if TOKEN else 'Non'}")  # Pour déboguer
+print(f"Token trouvé : {'Oui' if TOKEN else 'Non'}")
+print(f"Longueur du token : {len(TOKEN) if TOKEN else 0}")
+print(f"Début du token : {TOKEN[:10]}... (pour vérification)")
 
 if not TOKEN:
     raise ValueError("Le token Discord n'est pas configuré dans les variables d'environnement")
