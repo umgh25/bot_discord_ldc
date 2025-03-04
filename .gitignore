@@ -1,7 +1,7 @@
 # env files (can opt-in for committing if needed)
-.env
+echo ".env
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-.Python
+.Python" > .gitignore
