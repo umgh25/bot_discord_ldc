@@ -636,4 +636,4 @@ async def reset_points_error(ctx, error):
         await ctx.send("❌ Seuls les administrateurs peuvent réinitialiser les points.")
 
 # Lancement du bot avec le token
-bot.run(DISCORD_TOKEN)
+bot.run(TOKEN)
