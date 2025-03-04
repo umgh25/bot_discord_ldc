@@ -3,3 +3,6 @@ cmds = [
     "find . -type d -name '__pycache__' -exec rm -r {} +",
     "find . -type f -name '*.pyc' -delete"
 ]
+
+[start]
+cmd = "python bot.py"  # ou le nom de votre fichier principal
