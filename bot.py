@@ -11,6 +11,7 @@ env_path = Path('.') / '.env'
 # Charger les variables d'environnement
 load_dotenv(dotenv_path=env_path)
 
+
 # Récupérer le token
 TOKEN = os.getenv('DISCORD_TOKEN') 
 if not TOKEN:
