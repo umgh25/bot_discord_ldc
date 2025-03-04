@@ -12,7 +12,7 @@ env_path = Path('.') / '.env'
 load_dotenv(dotenv_path=env_path)
 
 # Récupérer le token
-TOKEN = os.getenv('DISCORD_TOKEN')
+TOKEN = os.getenv('DISCORD_TOKEN') 
 if not TOKEN:
     raise ValueError("Le token Discord n'est pas configuré dans les variables d'environnement")
 
