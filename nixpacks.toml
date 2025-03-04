@@ -8,4 +8,4 @@ cmds = [
 cmd = "python3 bot.py"
 
 [phases.install]
-nixPkgs = ["python3", "python3Packages.pip"]
+nixPkgs = ["python39", "python39Packages.pip"]
