@@ -576,9 +576,16 @@ async def reset_points_error(ctx, error):
         await ctx.send("❌ Seuls les administrateurs peuvent réinitialiser les points.")
 
 @bot.command(name="migrate_votes")
-@commands.has_permissions(administrator=True)
 async def migrate_votes_command(ctx):
     try:
+        # Récupérer l'ID admin depuis les variables d'environnement
+        admin_id = int(os.getenv('ADMIN_ID'))
+        
+        # Vérifier que c'est un admin qui utilise la commande
+        if ctx.author.id != admin_id:
+            await ctx.send("❌ Cette commande est réservée aux administrateurs.")
+            return
+
         # Vérifier que le message vient en DM
         if ctx.guild is not None:
             await ctx.send("❌ Cette commande doit être utilisée en message privé pour des raisons de sécurité.")
