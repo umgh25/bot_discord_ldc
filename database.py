@@ -3,6 +3,9 @@ from sqlite3 import Error
 import os
 from typing import List, Tuple
 
+# Définir le chemin absolu de la base de données
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'votes.db')
+
 def create_connection():
     try:
         # Utiliser le chemin persistant sur Render
@@ -50,10 +53,9 @@ def init_database():
 
 def save_vote(user_id: str, match_id: str, team: str) -> bool:
     try:
-        conn = sqlite3.connect('votes.db')
+        conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         
-        # Simplification : suppression et insertion directe
         cursor.execute("DELETE FROM votes WHERE user_id = ? AND match_id = ?", 
                       (user_id, match_id))
         cursor.execute("INSERT INTO votes (user_id, match_id, team) VALUES (?, ?, ?)",
@@ -84,19 +86,17 @@ def get_user_votes(user_id):
             conn.close()
 
 def get_all_votes() -> List[Tuple]:
-    print("DEBUG - Tentative de récupération de tous les votes")  # Debug
     try:
-        conn = sqlite3.connect('votes.db')
+        conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM votes")
-        votes = cursor.fetchall()
-        print(f"DEBUG - Votes récupérés : {votes}")  # Debug
-        return votes
-    except Exception as e:
-        print(f"DEBUG - Erreur de récupération : {str(e)}")  # Debug
+        return cursor.fetchall()
+    except sqlite3.Error as e:
+        print(f"Erreur de lecture : {e}")
         return []
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 def save_points(user_id, match_id, points):
     conn = create_connection()
@@ -145,4 +145,29 @@ def get_all_points():
             print(f"Erreur lors de la récupération de tous les points : {e}")
             return {}
         finally:
+            conn.close()
+
+# Fonction d'initialisation de la base de données
+def init_db():
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Créer la table si elle n'existe pas
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS votes (
+            user_id TEXT,
+            match_id TEXT,
+            team TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, match_id)
+        )
+        """)
+        
+        conn.commit()
+        print(f"Base de données initialisée à : {DB_PATH}")
+    except sqlite3.Error as e:
+        print(f"Erreur d'initialisation : {e}")
+    finally:
+        if conn:
             conn.close()

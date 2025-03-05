@@ -5,7 +5,7 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 from keep_alive import keep_alive
-from database import init_database, save_vote, get_user_votes, get_all_votes, save_points, get_user_points, get_all_points
+from database import init_database, save_vote, get_user_votes, get_all_votes, save_points, get_user_points, get_all_points, init_db
 
 # Initialiser la base de données au démarrage
 init_database()
@@ -93,7 +93,8 @@ matches = {
 # Événement quand le bot est prêt
 @bot.event
 async def on_ready():
-    print(f'{bot.user} est connecté et prêt !')
+    print(f'{bot.user} est connecté !')
+    init_db()  # Initialiser la base de données au démarrage
 
 # Commande d'aide pour le vote
 @bot.command(name="help_vote")
