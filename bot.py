@@ -4,7 +4,7 @@ import json
 import os
 from dotenv import load_dotenv
 from pathlib import Path
-
+from keep_alive import keep_alive
 # Obtenir le chemin absolu du fichier .env
 env_path = Path('.') / '.env'
 
@@ -635,5 +635,8 @@ async def reset_points_error(ctx, error):
     if isinstance(error, commands.MissingPermissions):
         await ctx.send("❌ Seuls les administrateurs peuvent réinitialiser les points.")
 
+keep_alive()
+
 # Lancement du bot avec le token
 bot.run(TOKEN)
+
