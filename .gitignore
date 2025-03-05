@@ -8,11 +8,6 @@ __pycache__/
 *.pyd
 .Python
 
-# Base de données
-*.db
-votes.db
-/app/data/*.db
-
 # Autres fichiers à ignorer
 *.log
 .DS_Store
