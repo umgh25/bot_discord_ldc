@@ -580,22 +580,27 @@ async def migrate_votes_command(ctx):
     try:
         # Récupérer et vérifier l'ID admin
         admin_id = os.getenv('ADMIN_ID')
-        print(f"ID Admin configuré : {admin_id}")
-        print(f"ID de l'utilisateur : {ctx.author.id}")
-        
-        if str(ctx.author.id) != admin_id:  # Comparaison avec des strings
+        if str(ctx.author.id) != admin_id:
             await ctx.send(f"❌ Cette commande est réservée aux administrateurs.")
             return
 
-        # Vérifier que le message vient en DM
-        if ctx.guild is not None:
-            await ctx.send("❌ Cette commande doit être utilisée en message privé pour des raisons de sécurité.")
-            return
+        # Vérifier le chemin du fichier
+        current_dir = os.getcwd()
+        print(f"Dossier actuel : {current_dir}")
+        print(f"Contenu du dossier : {os.listdir()}")
 
         # Lire le fichier votes.json
-        with open('votes.json', 'r') as f:
-            votes = json.load(f)
-            print(f"Nombre de votes trouvés : {len(votes)}")
+        try:
+            with open('votes.json', 'r') as f:
+                votes = json.load(f)
+                print(f"Fichier votes.json lu avec succès")
+                print(f"Contenu : {votes}")
+        except FileNotFoundError:
+            await ctx.send("❌ Erreur : Le fichier votes.json n'a pas été trouvé.")
+            return
+        except json.JSONDecodeError:
+            await ctx.send("❌ Erreur : Le fichier votes.json est mal formaté.")
+            return
 
         status_message = await ctx.send("🔄 Migration des votes en cours...")
         
@@ -603,11 +608,14 @@ async def migrate_votes_command(ctx):
         error_count = 0
 
         for user_id, user_votes in votes.items():
+            print(f"Migration des votes pour l'utilisateur {user_id}")
             for match_id, team in user_votes.items():
                 if save_vote(user_id, match_id, team):
                     success_count += 1
+                    print(f"✅ Vote migré : Match {match_id}, Équipe {team}")
                 else:
                     error_count += 1
+                    print(f"❌ Erreur : Match {match_id}, Équipe {team}")
                     
         await status_message.edit(content=f"""
 ✅ Migration terminée !
@@ -619,6 +627,7 @@ Vérifiez avec `!all_votes` sur le serveur.
 
     except Exception as e:
         await ctx.send(f"❌ Erreur lors de la migration : {str(e)}")
+        print(f"Erreur détaillée : {e}")
 
 @migrate_votes_command.error
 async def migrate_votes_error(ctx, error):
