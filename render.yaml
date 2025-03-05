@@ -1,9 +1,6 @@
 services:
-  - type: web
+  - type: worker
     name: discord-bot
     env: python
-    buildCommand: |
-      chmod +x start.sh
-      pip install -r requirements.txt
-    startCommand: ./start.sh
-    runtime: python3 
+    buildCommand: pip install -r requirements.txt
+    startCommand: python3 bot.py 
