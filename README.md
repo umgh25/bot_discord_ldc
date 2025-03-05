@@ -53,7 +53,7 @@ pip install -r requirements.txt
 DISCORD_TOKEN=votre_token_discord
 ```
 
-### 4. Création des Fichiers de Données
+### 3. Création des Fichiers de Données
 
 1. Créez deux fichiers JSON vides à la racine du projet :
 
@@ -73,7 +73,7 @@ Ces fichiers sont essentiels pour :
 
 ⚠️ Note : Ces fichiers doivent être créés avant le premier lancement du bot.
 
-### 3. Déploiement sur Render
+### 4. Déploiement sur Render
 
 1. Créez un compte sur [Render](https://render.com)
 2. Connectez votre repository GitHub
