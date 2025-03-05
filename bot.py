@@ -631,11 +631,15 @@ keep_alive()
 # Lancement du bot avec le token
 bot.run(TOKEN)
 
+# Définir le chemin de la base de données
+DB_PATH = '/app/data/votes.db'  # Pour production sur Render
+# DB_PATH = 'votes.db'  # Pour développement local
+
 # Connexion à la base de données
 def init_db():
-    conn = sqlite3.connect('votes.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    # Créer la table des votes si elle n'existe pas
+    # Créer la table des votes
     c.execute('''CREATE TABLE IF NOT EXISTS votes
                  (user_id TEXT, match_id TEXT, team TEXT, vote_date TEXT)''')
     # Créer la table des points
@@ -644,9 +648,12 @@ def init_db():
     conn.commit()
     conn.close()
 
+# Initialiser la base de données au démarrage
+init_db()
+
 # Sauvegarder un vote
 def sauvegarder_vote(user_id, match_id, team):
-    conn = sqlite3.connect('votes.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     vote_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     c.execute("INSERT OR REPLACE INTO votes VALUES (?, ?, ?, ?)",
@@ -656,7 +663,7 @@ def sauvegarder_vote(user_id, match_id, team):
 
 # Récupérer les votes d'un utilisateur
 def get_votes(user_id):
-    conn = sqlite3.connect('votes.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("SELECT match_id, team FROM votes WHERE user_id=?", (str(user_id),))
     votes = dict(c.fetchall())
