@@ -660,6 +660,7 @@ def sauvegarder_vote(user_id, match_id, team):
               (str(user_id), str(match_id), team, vote_date))
     conn.commit()
     conn.close()
+    print(f"Vote sauvegardé : User {user_id}, Match {match_id}, Team {team}")  # Log de débogage
 
 # Récupérer les votes d'un utilisateur
 def get_votes(user_id):
@@ -668,5 +669,6 @@ def get_votes(user_id):
     c.execute("SELECT match_id, team FROM votes WHERE user_id=?", (str(user_id),))
     votes = dict(c.fetchall())
     conn.close()
+    print(f"Votes récupérés pour {user_id} : {votes}")  # Log de débogage
     return votes
 
