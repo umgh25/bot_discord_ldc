@@ -52,21 +52,31 @@ def init_database():
             conn.close()
 
 def save_vote(user_id: str, match_id: str, team: str) -> bool:
+    print(f"DEBUG - Début save_vote avec : {user_id}, {match_id}, {team}")
+    conn = None
     try:
+        print(f"DEBUG - Chemin DB : {DB_PATH}")
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         
+        # Supprimer l'ancien vote s'il existe
         cursor.execute("DELETE FROM votes WHERE user_id = ? AND match_id = ?", 
                       (user_id, match_id))
+                      
+        # Insérer le nouveau vote
         cursor.execute("INSERT INTO votes (user_id, match_id, team) VALUES (?, ?, ?)",
                       (user_id, match_id, team))
         
         conn.commit()
+        print("DEBUG - Vote sauvegardé avec succès")
         return True
         
-    except sqlite3.Error as e:
-        print(f"Erreur SQLite : {e}")
+    except Exception as e:
+        print(f"DEBUG - Erreur détaillée dans save_vote : {str(e)}")
+        if conn:
+            conn.rollback()
         return False
+        
     finally:
         if conn:
             conn.close()
