@@ -14,56 +14,48 @@ def create_connection():
         return None
 
 def init_database():
-    conn = create_connection()
-    if conn is not None:
-        try:
-            c = conn.cursor()
-            
-            # Création de la table des votes
-            c.execute('''
-                CREATE TABLE IF NOT EXISTS votes (
-                    user_id TEXT,
-                    match_id TEXT,
-                    team TEXT,
-                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    PRIMARY KEY (user_id, match_id)
-                )
-            ''')
-            
-            # Création de la table des points
-            c.execute('''
-                CREATE TABLE IF NOT EXISTS points (
-                    user_id TEXT,
-                    match_id TEXT,
-                    points INTEGER,
-                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    PRIMARY KEY (user_id, match_id)
-                )
-            ''')
-            
-            conn.commit()
-            print("Base de données initialisée avec succès")
-        except Error as e:
-            print(f"Erreur lors de la création des tables : {e}")
-        finally:
-            conn.close()
-
-def save_vote(user_id: str, match_id: str, team: str) -> bool:
     try:
         conn = sqlite3.connect('votes.db')
         cursor = conn.cursor()
         
-        # Simplification : suppression et insertion directe
-        cursor.execute("DELETE FROM votes WHERE user_id = ? AND match_id = ?", 
-                      (user_id, match_id))
-        cursor.execute("INSERT INTO votes (user_id, match_id, team) VALUES (?, ?, ?)",
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS votes (
+            user_id TEXT,
+            match_id TEXT,
+            team TEXT,
+            PRIMARY KEY (user_id, match_id)
+        )
+        """)
+        
+        conn.commit()
+        print("Base de données initialisée avec succès")
+        return True
+    except sqlite3.Error as e:
+        print(f"Erreur d'initialisation de la base de données : {e}")
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+def save_vote(user_id: str, match_id: str, team: str) -> bool:
+    try:
+        # S'assurer que la base de données est initialisée
+        init_database()
+        
+        conn = sqlite3.connect('votes.db')
+        cursor = conn.cursor()
+        
+        cursor.execute("REPLACE INTO votes (user_id, match_id, team) VALUES (?, ?, ?)",
                       (user_id, match_id, team))
         
         conn.commit()
         return True
         
     except sqlite3.Error as e:
-        print(f"Erreur SQLite : {e}")
+        print(f"Erreur SQLite détaillée : {e}")
+        return False
+    except Exception as e:
+        print(f"Erreur inattendue : {e}")
         return False
     finally:
         if conn:
