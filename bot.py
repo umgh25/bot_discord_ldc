@@ -5,6 +5,10 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 from keep_alive import keep_alive
+from database import init_database, save_vote, get_user_votes, get_all_votes, save_points, get_user_points, get_all_points
+
+# Initialiser la base de données au démarrage
+init_database()
 
 # Obtenir le chemin absolu du fichier .env
 env_path = Path('.') / '.env'
@@ -152,48 +156,33 @@ async def help_vote(ctx):
 # Commande !vote
 @bot.command()
 async def vote(ctx, match_id: int = None, *, team: str = None):
-    # Vérifier si les paramètres sont fournis
     if match_id is None or team is None:
-        await ctx.send("❌ Format incorrect. Utilisez `!vote <numéro du match> <nom de l'équipe>`\nPour plus d'aide, tapez `!help_vote`")
+        await ctx.send("❌ Format incorrect. Utilisez `!vote <numéro du match> <nom de l'équipe>`")
         return
 
-    # Vérifier si le match existe
     if match_id < 1 or match_id > len(matches):
-        await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont de 1 à {len(matches)}.\nPour voir la liste des matchs, tapez `!help_vote`")
+        await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont de 1 à {len(matches)}")
         return
 
     match = matches[match_id]
     team1, team2 = match["teams"]
-
-    # Normaliser le nom de l'équipe pour la comparaison
-    team = team.strip()
     
+    team = team.strip()
     if team.lower() not in [team1.lower(), team2.lower()]:
-        await ctx.send(f"❌ Équipe invalide. Pour le match {match_id}, vous pouvez seulement voter pour :\n- **{team1}**\n- **{team2}**")
+        await ctx.send(f"❌ Équipe invalide. Pour le match {match_id}, vous pouvez voter pour :\n- {team1}\n- {team2}")
         return
 
-    # Trouver le nom exact de l'équipe (pour garder la casse correcte)
+    # Trouver le nom exact de l'équipe
     if team.lower() == team1.lower():
         team = team1
     else:
         team = team2
 
-    # Enregistrement du vote
-    user = str(ctx.author.id)
-    if user not in votes:
-        votes[user] = {}
-
-    # Vérifier si l'utilisateur change son vote
-    changing_vote = str(match_id) in votes[user]
-    old_vote = votes[user].get(str(match_id))
-
-    votes[user][str(match_id)] = team
-    sauvegarder_votes()
-
-    if changing_vote:
-        await ctx.send(f"✅ {ctx.author.mention}, tu as changé ton vote de **{old_vote}** à **{team}** pour le match **{team1}** vs **{team2}**.")
+    # Sauvegarder le vote dans la base de données
+    if save_vote(ctx.author.id, match_id, team):
+        await ctx.send(f"✅ {ctx.author.mention}, votre vote pour **{team}** dans le match **{team1}** vs **{team2}** a été enregistré!")
     else:
-        await ctx.send(f"✅ {ctx.author.mention}, tu as voté pour **{team}** dans le match **{team1}** vs **{team2}**.")
+        await ctx.send("❌ Une erreur est survenue lors de l'enregistrement du vote.")
 
 # Commande !supprimer_vote
 
@@ -279,25 +268,20 @@ Pénalité : Chaque match non pronostiqué à temps entraîne une pénalité de 
 # Commande pour voir le récapitulatif des votes
 @bot.command(name="recap")
 async def recap(ctx):
-    user_id = str(ctx.author.id)
+    user_votes = get_user_votes(ctx.author.id)
     
-    if user_id not in votes or not votes[user_id]:
-        await ctx.send(f"❌ {ctx.author.mention}, tu n'as pas encore voté pour aucun match.")
+    if not user_votes:
+        await ctx.send(f"❌ {ctx.author.mention}, vous n'avez pas encore voté.")
         return
         
     recap_message = f"**📊 Récapitulatif de vos votes {ctx.author.mention} :**\n\n"
     
-    # Trier les votes par numéro de match
-    user_votes = votes[user_id]
-    sorted_votes = sorted(user_votes.items(), key=lambda x: int(x[0]))
-    
-    for match_id, voted_team in sorted_votes:
+    for match_id, voted_team in sorted(user_votes.items(), key=lambda x: int(x[0])):
         match = matches[int(match_id)]
         team1, team2 = match["teams"]
         recap_message += f"**Match {match_id}** : {team1} vs {team2}\n"
         recap_message += f"➡️ Votre vote : **{voted_team}**\n\n"
     
-    # Ajouter le nombre total de votes
     total_votes = len(user_votes)
     matches_restants = len(matches) - total_votes
     
@@ -305,11 +289,8 @@ async def recap(ctx):
     recap_message += f"- Votes effectués : **{total_votes}/{len(matches)}**\n"
     
     if matches_restants > 0:
-        recap_message += f"- Matches restants à voter : **{matches_restants}**\n"
-        recap_message += f"\n💡 Utilisez `!help_vote` pour voir la liste des matches disponibles."
-    else:
-        recap_message += f"\n✅ Vous avez voté pour tous les matches !"
-
+        recap_message += f"- Matches restants : **{matches_restants}**"
+    
     await ctx.send(recap_message)
 
 # Commande pour voir le récapitulatif des votes
@@ -509,74 +490,32 @@ async def modifier_vote(ctx, match_id: int = None, *, team: str = None):
 @bot.command(name="point")
 @commands.has_permissions(administrator=True)
 async def point(ctx, member: discord.Member = None, match_id: int = None, point_value: int = None):
-    # Vérifier si tous les paramètres sont fournis
     if None in (member, match_id, point_value):
-        await ctx.send("❌ Format incorrect. Utilisez `!point @utilisateur 1 1` (premier chiffre = numéro du match, deuxième chiffre = points)")
+        await ctx.send("❌ Format incorrect. Utilisez `!point @utilisateur <match> <points>`")
         return
 
-    # Vérifier si le match existe
-    if match_id < 1 or match_id > len(matches):
-        await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont de 1 à {len(matches)}.")
-        return
-
-    # Vérifier si les points sont valides (-1 ou 1)
     if point_value not in [-1, 1]:
         await ctx.send("❌ Les points doivent être 1 (victoire) ou -1 (absence)")
         return
 
-    user_id = str(member.id)
-    
-    # Initialiser la structure des points si nécessaire
-    if user_id not in points:
-        points[user_id] = {}
-    
-    # Enregistrer les points pour ce match
-    points[user_id][f"match{match_id}"] = point_value
-    sauvegarder_points()
-    
-    # Récupérer les informations du match
-    match = matches[match_id]
-    team1, team2 = match["teams"]
-    
-    # Récupérer le vote de l'utilisateur pour ce match
-    user_vote = "N'a pas voté"
-    if user_id in votes and str(match_id) in votes[user_id]:
-        user_vote = votes[user_id][str(match_id)]
-    
-    # Créer le message de confirmation
-    if point_value > 0:
-        emoji = "✅"
-        message = f"a gagné **{point_value}** point"
+    if save_points(member.id, match_id, point_value):
+        total_points = get_user_points(member.id)
+        await ctx.send(f"✅ Points mis à jour pour {member.mention}!\nTotal des points : **{total_points}**")
     else:
-        emoji = "❌"
-        message = f"a perdu **{abs(point_value)}** point"
-    
-    confirmation = f"{emoji} {member.mention} {message} pour le match {match_id} !\n"
-    confirmation += f"└─ Match : **{team1}** vs **{team2}**\n"
-    confirmation += f"└─ Vote : **{user_vote}**\n"
-    confirmation += f"└─ Points : **{point_value}**"
-    
-    await ctx.send(confirmation)
+        await ctx.send("❌ Une erreur est survenue lors de l'attribution des points.")
 
 # Commande pour voir le classement des points
 @bot.command(name="classement")
 async def classement(ctx):
-    if not points:
+    all_points = get_all_points()
+    
+    if not all_points:
         await ctx.send("❌ Aucun point n'a encore été attribué.")
         return
     
-    # Calculer les points totaux pour chaque utilisateur
-    totaux = {}
-    for user_id, user_points in points.items():
-        total = sum(user_points.values())
-        totaux[user_id] = total
-    
-    # Trier les utilisateurs par points
-    classement = sorted(totaux.items(), key=lambda x: x[1], reverse=True)
-    
     message = "**🏆 CLASSEMENT GÉNÉRAL 🏆**\n\n"
     
-    for i, (user_id, total) in enumerate(classement, 1):
+    for i, (user_id, points) in enumerate(sorted(all_points.items(), key=lambda x: x[1], reverse=True), 1):
         try:
             user = await bot.fetch_user(int(user_id))
             username = user.name
@@ -584,7 +523,7 @@ async def classement(ctx):
             username = f"Utilisateur_{user_id}"
             
         medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else "👤"
-        message += f"{medal} **{username}** : {total} point(s)\n"
+        message += f"{medal} **{username}** : {points} point(s)\n"
     
     await ctx.send(message)
 

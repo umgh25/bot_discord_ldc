@@ -1,104 +1,146 @@
 import sqlite3
+from sqlite3 import Error
+import os
 
-# Initialisation de la base de données
+def create_connection():
+    try:
+        # Utiliser le chemin persistant sur Render
+        db_path = '/data/bot_database.db' if os.path.exists('/data') else 'bot_database.db'
+        conn = sqlite3.connect(db_path)
+        return conn
+    except Error as e:
+        print(f"Erreur de connexion à la base de données : {e}")
+        return None
 
+def init_database():
+    conn = create_connection()
+    if conn is not None:
+        try:
+            c = conn.cursor()
+            
+            # Création de la table des votes
+            c.execute('''
+                CREATE TABLE IF NOT EXISTS votes (
+                    user_id TEXT,
+                    match_id TEXT,
+                    team TEXT,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (user_id, match_id)
+                )
+            ''')
+            
+            # Création de la table des points
+            c.execute('''
+                CREATE TABLE IF NOT EXISTS points (
+                    user_id TEXT,
+                    match_id TEXT,
+                    points INTEGER,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (user_id, match_id)
+                )
+            ''')
+            
+            conn.commit()
+            print("Base de données initialisée avec succès")
+        except Error as e:
+            print(f"Erreur lors de la création des tables : {e}")
+        finally:
+            conn.close()
 
-def create_db():
-    conn = sqlite3.connect('bot_data.db')
-    c = conn.cursor()
+def save_vote(user_id, match_id, team):
+    conn = create_connection()
+    if conn is not None:
+        try:
+            c = conn.cursor()
+            c.execute('''
+                INSERT OR REPLACE INTO votes (user_id, match_id, team)
+                VALUES (?, ?, ?)
+            ''', (str(user_id), str(match_id), team))
+            conn.commit()
+            return True
+        except Error as e:
+            print(f"Erreur lors de l'enregistrement du vote : {e}")
+            return False
+        finally:
+            conn.close()
 
-    # Table pour stocker les votes
-    c.execute('''CREATE TABLE IF NOT EXISTS votes (
-        user_id INTEGER PRIMARY KEY,
-        match_id TEXT,
-        choice TEXT
-    )''')
+def get_user_votes(user_id):
+    conn = create_connection()
+    if conn is not None:
+        try:
+            c = conn.cursor()
+            c.execute('SELECT match_id, team FROM votes WHERE user_id = ?', (str(user_id),))
+            votes = dict(c.fetchall())
+            return votes
+        except Error as e:
+            print(f"Erreur lors de la récupération des votes : {e}")
+            return {}
+        finally:
+            conn.close()
 
-    # Table pour stocker les points des utilisateurs
-    c.execute('''CREATE TABLE IF NOT EXISTS leaderboard (
-        user_id INTEGER PRIMARY KEY,
-        points INTEGER DEFAULT 0
-    )''')
+def get_all_votes():
+    conn = create_connection()
+    if conn is not None:
+        try:
+            c = conn.cursor()
+            c.execute('SELECT user_id, match_id, team FROM votes')
+            votes = {}
+            for user_id, match_id, team in c.fetchall():
+                if user_id not in votes:
+                    votes[user_id] = {}
+                votes[user_id][match_id] = team
+            return votes
+        except Error as e:
+            print(f"Erreur lors de la récupération de tous les votes : {e}")
+            return {}
+        finally:
+            conn.close()
 
-    # Table pour stocker le canal de votes
-    c.execute('''CREATE TABLE IF NOT EXISTS settings (
-        id INTEGER PRIMARY KEY,
-        channel_id TEXT
-    )''')
+def save_points(user_id, match_id, points):
+    conn = create_connection()
+    if conn is not None:
+        try:
+            c = conn.cursor()
+            c.execute('''
+                INSERT OR REPLACE INTO points (user_id, match_id, points)
+                VALUES (?, ?, ?)
+            ''', (str(user_id), str(match_id), points))
+            conn.commit()
+            return True
+        except Error as e:
+            print(f"Erreur lors de l'enregistrement des points : {e}")
+            return False
+        finally:
+            conn.close()
 
-    conn.commit()
-    conn.close()
+def get_user_points(user_id):
+    conn = create_connection()
+    if conn is not None:
+        try:
+            c = conn.cursor()
+            c.execute('SELECT SUM(points) FROM points WHERE user_id = ?', (str(user_id),))
+            total = c.fetchone()[0]
+            return total if total is not None else 0
+        except Error as e:
+            print(f"Erreur lors de la récupération des points : {e}")
+            return 0
+        finally:
+            conn.close()
 
-# Fonction pour enregistrer un vote
-
-
-def save_vote(user_id, match_id, choice):
-    conn = sqlite3.connect('bot_data.db')
-    c = conn.cursor()
-    c.execute('''INSERT OR REPLACE INTO votes (user_id, match_id, choice) VALUES (?, ?, ?)''',
-              (user_id, match_id, choice))
-    conn.commit()
-    conn.close()
-
-# Fonction pour récupérer les votes d'un match
-
-
-def get_votes(match_id):
-    conn = sqlite3.connect('bot_data.db')
-    c = conn.cursor()
-    c.execute(
-        '''SELECT user_id, choice FROM votes WHERE match_id = ?''', (match_id,))
-    results = c.fetchall()
-    conn.close()
-    return results
-
-# Fonction pour ajouter des points
-
-
-def add_points(user_id, points):
-    conn = sqlite3.connect('bot_data.db')
-    c = conn.cursor()
-    c.execute('''INSERT INTO leaderboard (user_id, points) 
-                 VALUES (?, ?) 
-                 ON CONFLICT(user_id) 
-                 DO UPDATE SET points = points + ?''',
-              (user_id, points, points))
-    conn.commit()
-    conn.close()
-
-# Fonction pour récupérer le classement
-
-
-def get_leaderboard():
-    conn = sqlite3.connect('bot_data.db')
-    c = conn.cursor()
-    c.execute('''SELECT user_id, points FROM leaderboard ORDER BY points DESC''')
-    results = c.fetchall()
-    conn.close()
-    return results
-
-# Fonction pour enregistrer le canal de votes
-
-
-def set_channel(channel_id):
-    conn = sqlite3.connect('bot_data.db')
-    c = conn.cursor()
-    c.execute(
-        '''INSERT OR REPLACE INTO settings (id, channel_id) VALUES (1, ?)''', (channel_id,))
-    conn.commit()
-    conn.close()
-
-# Fonction pour récupérer l'ID du canal de votes
-
-
-def get_channel():
-    conn = sqlite3.connect('bot_data.db')
-    c = conn.cursor()
-    c.execute('''SELECT channel_id FROM settings WHERE id = 1''')
-    result = c.fetchone()
-    conn.close()
-    return result[0] if result else None
-
-
-# Création de la base de données au lancement
-create_db()
+def get_all_points():
+    conn = create_connection()
+    if conn is not None:
+        try:
+            c = conn.cursor()
+            c.execute('''
+                SELECT user_id, SUM(points) as total
+                FROM points
+                GROUP BY user_id
+                ORDER BY total DESC
+            ''')
+            return dict(c.fetchall())
+        except Error as e:
+            print(f"Erreur lors de la récupération de tous les points : {e}")
+            return {}
+        finally:
+            conn.close()
