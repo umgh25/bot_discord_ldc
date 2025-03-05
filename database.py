@@ -49,35 +49,25 @@ def init_database():
             conn.close()
 
 def save_vote(user_id: str, match_id: str, team: str) -> bool:
-    print(f"DEBUG - Tentative de sauvegarde : User {user_id}, Match {match_id}, Team {team}")  # Debug
     try:
         conn = sqlite3.connect('votes.db')
         cursor = conn.cursor()
         
-        # Vérifier si un vote existe déjà
-        cursor.execute("SELECT * FROM votes WHERE user_id = ? AND match_id = ?", 
+        # Simplification : suppression et insertion directe
+        cursor.execute("DELETE FROM votes WHERE user_id = ? AND match_id = ?", 
                       (user_id, match_id))
-        existing_vote = cursor.fetchone()
-        
-        if existing_vote:
-            # Mettre à jour le vote existant
-            cursor.execute("UPDATE votes SET team = ? WHERE user_id = ? AND match_id = ?",
-                         (team, user_id, match_id))
-        else:
-            # Créer un nouveau vote
-            cursor.execute("INSERT INTO votes (user_id, match_id, team) VALUES (?, ?, ?)",
-                         (user_id, match_id, team))
+        cursor.execute("INSERT INTO votes (user_id, match_id, team) VALUES (?, ?, ?)",
+                      (user_id, match_id, team))
         
         conn.commit()
-        print("DEBUG - Sauvegarde réussie")  # Debug
         return True
         
-    except Exception as e:
-        print(f"DEBUG - Erreur de sauvegarde : {str(e)}")  # Debug
+    except sqlite3.Error as e:
+        print(f"Erreur SQLite : {e}")
         return False
-        
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 def get_user_votes(user_id):
     conn = create_connection()

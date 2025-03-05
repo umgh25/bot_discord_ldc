@@ -577,26 +577,19 @@ async def reset_points_error(ctx, error):
 
 @bot.command(name="add_vote")
 async def add_vote_admin(ctx, user_id: str, match_id: str, *, team: str):
-    try:
-        # Vérifier l'admin
-        admin_id = os.getenv('ADMIN_ID')
-        if str(ctx.author.id) != admin_id:
-            await ctx.send("❌ Cette commande est réservée aux administrateurs.")
-            return
+    if str(ctx.author.id) != os.getenv('ADMIN_ID'):
+        await ctx.send("❌ Commande réservée aux administrateurs.")
+        return
 
-        # Vérifier que c'est en DM
-        if ctx.guild is not None:
-            await ctx.send("❌ Cette commande doit être utilisée en message privé.")
-            return
+    if ctx.guild is not None:
+        await ctx.send("❌ Cette commande doit être utilisée en message privé.")
+        return
 
-        # Sauvegarder le vote
-        if save_vote(user_id, match_id, team):
-            await ctx.send(f"✅ Vote ajouté : User {user_id}, Match {match_id}, Équipe {team}")
-        else:
-            await ctx.send("❌ Erreur lors de l'ajout du vote.")
-
-    except Exception as e:
-        await ctx.send(f"❌ Erreur : {str(e)}")
+    success = save_vote(user_id, match_id, team)
+    if success:
+        await ctx.send(f"✅ Vote enregistré pour {user_id} (Match {match_id}: {team})")
+    else:
+        await ctx.send("❌ Erreur lors de l'enregistrement du vote.")
 
 keep_alive()
 
