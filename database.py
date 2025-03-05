@@ -2,11 +2,6 @@ import sqlite3
 from sqlite3 import Error
 import os
 from typing import List, Tuple
-from pathlib import Path
-
-# Créer un dossier data dans le répertoire du projet
-DATA_DIR = Path(os.path.dirname(os.path.abspath(__file__))) / 'data'
-DB_PATH = DATA_DIR / 'votes.db'
 
 def create_connection():
     try:
@@ -18,60 +13,57 @@ def create_connection():
         print(f"Erreur de connexion à la base de données : {e}")
         return None
 
-def ensure_data_dir():
-    try:
-        DATA_DIR.mkdir(exist_ok=True)
-        print(f"Dossier data créé/vérifié: {DATA_DIR}")
-        print(f"Permissions du dossier: {oct(os.stat(DATA_DIR).st_mode)[-3:]}")
-        return True
-    except Exception as e:
-        print(f"Erreur création dossier: {e}")
-        return False
-
-def init_db():
-    ensure_data_dir()
-    try:
-        conn = sqlite3.connect(str(DB_PATH))
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS votes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT NOT NULL,
-            match_id TEXT NOT NULL,
-            team TEXT NOT NULL,
-            UNIQUE(user_id, match_id)
-        )
-        """)
-        
-        conn.commit()
-        print(f"Base de données initialisée: {DB_PATH}")
-        print(f"Permissions DB: {oct(os.stat(DB_PATH).st_mode)[-3:]}")
-        return True
-    except Exception as e:
-        print(f"Erreur initialisation DB: {e}")
-        return False
-    finally:
-        if conn:
+def init_database():
+    conn = create_connection()
+    if conn is not None:
+        try:
+            c = conn.cursor()
+            
+            # Création de la table des votes
+            c.execute('''
+                CREATE TABLE IF NOT EXISTS votes (
+                    user_id TEXT,
+                    match_id TEXT,
+                    team TEXT,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (user_id, match_id)
+                )
+            ''')
+            
+            # Création de la table des points
+            c.execute('''
+                CREATE TABLE IF NOT EXISTS points (
+                    user_id TEXT,
+                    match_id TEXT,
+                    points INTEGER,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (user_id, match_id)
+                )
+            ''')
+            
+            conn.commit()
+            print("Base de données initialisée avec succès")
+        except Error as e:
+            print(f"Erreur lors de la création des tables : {e}")
+        finally:
             conn.close()
 
 def save_vote(user_id: str, match_id: str, team: str) -> bool:
-    if not DB_PATH.exists():
-        init_db()
-    
     try:
-        conn = sqlite3.connect(str(DB_PATH))
+        conn = sqlite3.connect('votes.db')
         cursor = conn.cursor()
         
-        cursor.execute("""
-        INSERT OR REPLACE INTO votes (user_id, match_id, team)
-        VALUES (?, ?, ?)
-        """, (user_id, match_id, team))
+        # Simplification : suppression et insertion directe
+        cursor.execute("DELETE FROM votes WHERE user_id = ? AND match_id = ?", 
+                      (user_id, match_id))
+        cursor.execute("INSERT INTO votes (user_id, match_id, team) VALUES (?, ?, ?)",
+                      (user_id, match_id, team))
         
         conn.commit()
         return True
-    except Exception as e:
-        print(f"Erreur sauvegarde vote: {e}")
+        
+    except sqlite3.Error as e:
+        print(f"Erreur SQLite : {e}")
         return False
     finally:
         if conn:
@@ -154,6 +146,3 @@ def get_all_points():
             return {}
         finally:
             conn.close()
-
-# Initialiser la DB au démarrage
-init_db()
