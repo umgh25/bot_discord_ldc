@@ -5,6 +5,7 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 from keep_alive import keep_alive
+
 # Obtenir le chemin absolu du fichier .env
 env_path = Path('.') / '.env'
 
@@ -18,7 +19,7 @@ print(f"Longueur du token : {len(TOKEN) if TOKEN else 0}")
 print(f"Début du token : {TOKEN[:10]}... (pour vérification)")
 
 if not TOKEN:
-    raise ValueError("Le token Discord n'est pas configuré dans les variables d'environnement")
+    raise ValueError("Le token Discord n'est pas configuré")
 
 # Fichier où stocker les votes
 VOTES_FILE = "votes.json"
