@@ -5,6 +5,8 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 from keep_alive import keep_alive
+import sqlite3
+from datetime import datetime
 
 # Obtenir le chemin absolu du fichier .env
 env_path = Path('.') / '.env'
@@ -178,22 +180,10 @@ async def vote(ctx, match_id: int = None, *, team: str = None):
     else:
         team = team2
 
-    # Enregistrement du vote
-    user = str(ctx.author.id)
-    if user not in votes:
-        votes[user] = {}
-
-    # Vérifier si l'utilisateur change son vote
-    changing_vote = str(match_id) in votes[user]
-    old_vote = votes[user].get(str(match_id))
-
-    votes[user][str(match_id)] = team
-    sauvegarder_votes()
-
-    if changing_vote:
-        await ctx.send(f"✅ {ctx.author.mention}, tu as changé ton vote de **{old_vote}** à **{team}** pour le match **{team1}** vs **{team2}**.")
-    else:
-        await ctx.send(f"✅ {ctx.author.mention}, tu as voté pour **{team}** dans le match **{team1}** vs **{team2}**.")
+    # Sauvegarder le vote dans la DB
+    sauvegarder_vote(ctx.author.id, match_id, team)
+    
+    await ctx.send(f"✅ Vote enregistré pour {team}")
 
 # Commande !supprimer_vote
 
@@ -640,4 +630,36 @@ keep_alive()
 
 # Lancement du bot avec le token
 bot.run(TOKEN)
+
+# Connexion à la base de données
+def init_db():
+    conn = sqlite3.connect('votes.db')
+    c = conn.cursor()
+    # Créer la table des votes si elle n'existe pas
+    c.execute('''CREATE TABLE IF NOT EXISTS votes
+                 (user_id TEXT, match_id TEXT, team TEXT, vote_date TEXT)''')
+    # Créer la table des points
+    c.execute('''CREATE TABLE IF NOT EXISTS points
+                 (user_id TEXT, match_id TEXT, points INTEGER)''')
+    conn.commit()
+    conn.close()
+
+# Sauvegarder un vote
+def sauvegarder_vote(user_id, match_id, team):
+    conn = sqlite3.connect('votes.db')
+    c = conn.cursor()
+    vote_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    c.execute("INSERT OR REPLACE INTO votes VALUES (?, ?, ?, ?)",
+              (str(user_id), str(match_id), team, vote_date))
+    conn.commit()
+    conn.close()
+
+# Récupérer les votes d'un utilisateur
+def get_votes(user_id):
+    conn = sqlite3.connect('votes.db')
+    c = conn.cursor()
+    c.execute("SELECT match_id, team FROM votes WHERE user_id=?", (str(user_id),))
+    votes = dict(c.fetchall())
+    conn.close()
+    return votes
 
