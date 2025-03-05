@@ -575,6 +575,47 @@ async def reset_points_error(ctx, error):
     if isinstance(error, commands.MissingPermissions):
         await ctx.send("❌ Seuls les administrateurs peuvent réinitialiser les points.")
 
+@bot.command(name="migrate_votes")
+@commands.has_permissions(administrator=True)
+async def migrate_votes_command(ctx):
+    try:
+        # Vérifier que le message vient en DM
+        if ctx.guild is not None:
+            await ctx.send("❌ Cette commande doit être utilisée en message privé pour des raisons de sécurité.")
+            return
+
+        # Lire le fichier votes.json
+        with open('votes.json', 'r') as f:
+            votes = json.load(f)
+
+        status_message = await ctx.send("🔄 Migration des votes en cours...")
+        
+        success_count = 0
+        error_count = 0
+
+        for user_id, user_votes in votes.items():
+            for match_id, team in user_votes.items():
+                if save_vote(user_id, match_id, team):
+                    success_count += 1
+                else:
+                    error_count += 1
+                    
+        await status_message.edit(content=f"""
+✅ Migration terminée !
+• Votes migrés avec succès : **{success_count}**
+• Erreurs : **{error_count}**
+
+Vérifiez avec `!all_votes` sur le serveur.
+""")
+
+    except Exception as e:
+        await ctx.send(f"❌ Erreur lors de la migration : {str(e)}")
+
+@migrate_votes_command.error
+async def migrate_votes_error(ctx, error):
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send("❌ Vous n'avez pas les permissions nécessaires.")
+
 keep_alive()
 
 # Lancement du bot avec le token
