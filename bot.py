@@ -578,12 +578,13 @@ async def reset_points_error(ctx, error):
 @bot.command(name="migrate_votes")
 async def migrate_votes_command(ctx):
     try:
-        # Récupérer l'ID admin depuis les variables d'environnement
-        admin_id = int(os.getenv('ADMIN_ID'))
+        # Récupérer et vérifier l'ID admin
+        admin_id = os.getenv('ADMIN_ID')
+        print(f"ID Admin configuré : {admin_id}")
+        print(f"ID de l'utilisateur : {ctx.author.id}")
         
-        # Vérifier que c'est un admin qui utilise la commande
-        if ctx.author.id != admin_id:
-            await ctx.send("❌ Cette commande est réservée aux administrateurs.")
+        if str(ctx.author.id) != admin_id:  # Comparaison avec des strings
+            await ctx.send(f"❌ Cette commande est réservée aux administrateurs.")
             return
 
         # Vérifier que le message vient en DM
@@ -594,6 +595,7 @@ async def migrate_votes_command(ctx):
         # Lire le fichier votes.json
         with open('votes.json', 'r') as f:
             votes = json.load(f)
+            print(f"Nombre de votes trouvés : {len(votes)}")
 
         status_message = await ctx.send("🔄 Migration des votes en cours...")
         
