@@ -157,18 +157,10 @@ async def help_vote(ctx):
 # Commande !vote
 @bot.command(name="vote")
 async def vote(ctx, match_id: str, *, team: str):
-    try:
-        user_id = str(ctx.author.id)
-        print(f"DEBUG - Tentative de vote : User {user_id}, Match {match_id}, Team {team}")
-        
-        success = save_vote(user_id, match_id, team)
-        if success:
-            await ctx.send(f"✅ Vote enregistré pour le match {match_id} : {team}")
-        else:
-            await ctx.send("❌ Une erreur est survenue lors de l'enregistrement du vote.")
-            
-    except Exception as e:
-        print(f"DEBUG - Erreur dans la commande vote : {str(e)}")
+    user_id = str(ctx.author.id)
+    if save_vote(user_id, match_id, team):
+        await ctx.send(f"✅ Vote enregistré pour le match {match_id} : {team}")
+    else:
         await ctx.send("❌ Une erreur est survenue lors de l'enregistrement du vote.")
 
 # Commande !supprimer_vote
