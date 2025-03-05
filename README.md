@@ -53,6 +53,26 @@ pip install -r requirements.txt
 DISCORD_TOKEN=votre_token_discord
 ```
 
+### 4. Création des Fichiers de Données
+
+1. Créez deux fichiers JSON vides à la racine du projet :
+
+`votes.json` :
+```json
+{}
+```
+
+`points.json` :
+```json
+{}
+```
+
+Ces fichiers sont essentiels pour :
+- `votes.json` : Stockage des votes des utilisateurs
+- `points.json` : Stockage des points attribués
+
+⚠️ Note : Ces fichiers doivent être créés avant le premier lancement du bot.
+
 ### 3. Déploiement sur Render
 
 1. Créez un compte sur [Render](https://render.com)
