@@ -1,16 +1,9 @@
 import sqlite3
 from sqlite3 import Error
-import os
-from typing import List, Tuple
-
-# Définir le chemin absolu de la base de données
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'votes.db')
 
 def create_connection():
     try:
-        # Utiliser le chemin persistant sur Render
-        db_path = '/data/bot_database.db' if os.path.exists('/data') else 'bot_database.db'
-        conn = sqlite3.connect(db_path)
+        conn = sqlite3.connect('bot_database.db')
         return conn
     except Error as e:
         print(f"Erreur de connexion à la base de données : {e}")
@@ -51,21 +44,21 @@ def init_database():
         finally:
             conn.close()
 
-def save_vote(user_id: str, match_id: str, team: str) -> bool:
-    try:
-        conn = sqlite3.connect('votes.db')
-        cursor = conn.cursor()
-        
-        cursor.execute("INSERT OR REPLACE INTO votes (user_id, match_id, team) VALUES (?, ?, ?)",
-                      (user_id, match_id, team))
-        
-        conn.commit()
-        return True
-    except Exception as e:
-        print(f"Erreur: {e}")
-        return False
-    finally:
-        if conn:
+def save_vote(user_id, match_id, team):
+    conn = create_connection()
+    if conn is not None:
+        try:
+            c = conn.cursor()
+            c.execute('''
+                INSERT OR REPLACE INTO votes (user_id, match_id, team)
+                VALUES (?, ?, ?)
+            ''', (str(user_id), str(match_id), team))
+            conn.commit()
+            return True
+        except Error as e:
+            print(f"Erreur lors de l'enregistrement du vote : {e}")
+            return False
+        finally:
             conn.close()
 
 def get_user_votes(user_id):
@@ -82,17 +75,22 @@ def get_user_votes(user_id):
         finally:
             conn.close()
 
-def get_all_votes() -> List[Tuple]:
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM votes")
-        return cursor.fetchall()
-    except sqlite3.Error as e:
-        print(f"Erreur de lecture : {e}")
-        return []
-    finally:
-        if conn:
+def get_all_votes():
+    conn = create_connection()
+    if conn is not None:
+        try:
+            c = conn.cursor()
+            c.execute('SELECT user_id, match_id, team FROM votes')
+            votes = {}
+            for user_id, match_id, team in c.fetchall():
+                if user_id not in votes:
+                    votes[user_id] = {}
+                votes[user_id][match_id] = team
+            return votes
+        except Error as e:
+            print(f"Erreur lors de la récupération de tous les votes : {e}")
+            return {}
+        finally:
             conn.close()
 
 def save_points(user_id, match_id, points):
@@ -142,29 +140,4 @@ def get_all_points():
             print(f"Erreur lors de la récupération de tous les points : {e}")
             return {}
         finally:
-            conn.close()
-
-# Fonction d'initialisation de la base de données
-def init_db():
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        
-        # Créer la table si elle n'existe pas
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS votes (
-            user_id TEXT,
-            match_id TEXT,
-            team TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (user_id, match_id)
-        )
-        """)
-        
-        conn.commit()
-        print(f"Base de données initialisée à : {DB_PATH}")
-    except sqlite3.Error as e:
-        print(f"Erreur d'initialisation : {e}")
-    finally:
-        if conn:
             conn.close()

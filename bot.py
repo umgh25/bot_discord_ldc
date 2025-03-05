@@ -5,7 +5,7 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 from keep_alive import keep_alive
-from database import init_database, save_vote, get_user_votes, get_all_votes, save_points, get_user_points, get_all_points, init_db
+from database import init_database, save_vote, get_user_votes, get_all_votes, save_points, get_user_points, get_all_points
 
 # Initialiser la base de données au démarrage
 init_database()
@@ -93,8 +93,7 @@ matches = {
 # Événement quand le bot est prêt
 @bot.event
 async def on_ready():
-    print(f'{bot.user} est connecté !')
-    init_db()  # Initialiser la base de données au démarrage
+    print(f'{bot.user} est connecté et prêt !')
 
 # Commande d'aide pour le vote
 @bot.command(name="help_vote")
@@ -155,11 +154,33 @@ async def help_vote(ctx):
     await ctx.send(help_message)
 
 # Commande !vote
-@bot.command(name="vote")
-async def vote(ctx, match_id: str, *, team: str):
-    user_id = str(ctx.author.id)
-    if save_vote(user_id, match_id, team):
-        await ctx.send(f"✅ Vote enregistré pour le match {match_id} : {team}")
+@bot.command()
+async def vote(ctx, match_id: int = None, *, team: str = None):
+    if match_id is None or team is None:
+        await ctx.send("❌ Format incorrect. Utilisez `!vote <numéro du match> <nom de l'équipe>`")
+        return
+
+    if match_id < 1 or match_id > len(matches):
+        await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont de 1 à {len(matches)}")
+        return
+
+    match = matches[match_id]
+    team1, team2 = match["teams"]
+    
+    team = team.strip()
+    if team.lower() not in [team1.lower(), team2.lower()]:
+        await ctx.send(f"❌ Équipe invalide. Pour le match {match_id}, vous pouvez voter pour :\n- {team1}\n- {team2}")
+        return
+
+    # Trouver le nom exact de l'équipe
+    if team.lower() == team1.lower():
+        team = team1
+    else:
+        team = team2
+
+    # Sauvegarder le vote dans la base de données
+    if save_vote(ctx.author.id, match_id, team):
+        await ctx.send(f"✅ {ctx.author.mention}, votre vote pour **{team}** dans le match **{team1}** vs **{team2}** a été enregistré!")
     else:
         await ctx.send("❌ Une erreur est survenue lors de l'enregistrement du vote.")
 
@@ -553,22 +574,6 @@ async def reset_points(ctx, member: discord.Member = None):
 async def reset_points_error(ctx, error):
     if isinstance(error, commands.MissingPermissions):
         await ctx.send("❌ Seuls les administrateurs peuvent réinitialiser les points.")
-
-@bot.command(name="add_vote")
-async def add_vote_admin(ctx, user_id: str, match_id: str, *, team: str):
-    if str(ctx.author.id) != os.getenv('ADMIN_ID'):
-        await ctx.send("❌ Commande réservée aux administrateurs.")
-        return
-
-    if ctx.guild is not None:
-        await ctx.send("❌ Cette commande doit être utilisée en message privé.")
-        return
-
-    success = save_vote(user_id, match_id, team)
-    if success:
-        await ctx.send(f"✅ Vote enregistré pour {user_id} (Match {match_id}: {team})")
-    else:
-        await ctx.send("❌ Erreur lors de l'enregistrement du vote.")
 
 keep_alive()
 

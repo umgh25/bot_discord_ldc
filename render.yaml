@@ -2,15 +2,5 @@ services:
   - type: worker
     name: discord-bot
     env: python
-    buildCommand: |
-      pip install -r requirements.txt
-      mkdir -p /data
-      python migrate_votes.py
-    startCommand: python3 bot.py
-    disk:
-      name: sqlite-data
-      mountPath: /data
-      sizeGB: 1
-    envVars:
-      - key: DISCORD_TOKEN
-        value: votre_token_discord 
+    buildCommand: pip install -r requirements.txt
+    startCommand: python3 bot.py 
