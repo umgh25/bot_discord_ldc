@@ -9,7 +9,7 @@ services:
       mountPath: /data
       sizeGB: 1
     envVars:
-      - key: RENDER_DB_PATH
-        value: /data
       - key: DISCORD_TOKEN
-        sync: false 
+        sync: false
+      - key: RENDER_DB_PATH
+        value: /data 
