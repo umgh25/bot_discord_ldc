@@ -3,4 +3,8 @@ services:
     name: discord-bot
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: python3 bot.py 
+    startCommand: python3 bot.py
+    disk:
+      name: data
+      mountPath: /data
+      sizeGB: 1 
