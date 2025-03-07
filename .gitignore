@@ -1,5 +1,13 @@
 # Fichiers d'environnement
 .env
+.env.local  
+.env.development
+.env.production
+.env.test
+.env.development.local
+.env.production.local
+.env.test.local 
+
 
 # Python
 __pycache__/
@@ -11,3 +19,4 @@ __pycache__/
 # Autres fichiers à ignorer
 *.log
 .DS_Store
+
