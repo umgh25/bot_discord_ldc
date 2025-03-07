@@ -1,16 +1,15 @@
-# Fichiers d'environnement
-.env
-.env.local  
-.env.development
-.env.production
-.env.test
-.env.development.local
-.env.production.local
-.env.test.local 
-
-
-# Python
+# Python cache
 __pycache__/
+*.py[cod]
+*$py.class
+
+# Environnement
+.env
+.venv
+venv/
+ENV/
+
+# Fichiers de données
 *.pyc
 *.pyo
 *.pyd
