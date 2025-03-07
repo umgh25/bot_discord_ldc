@@ -2,7 +2,7 @@ import sqlite3
 import os
 
 # Définir le chemin de la base de données
-DB_PATH = os.path.join(os.getenv('RENDER_DB_PATH', '.'), 'bot_data.db')
+DB_PATH = os.path.join(os.getenv('RENDER_DB_PATH', '.'), 'bot_database.db')
 
 def create_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)  # Crée le dossier si nécessaire
@@ -43,7 +43,7 @@ def save_vote(user_id, match_id, choice):
 
 
 def get_votes(match_id):
-    conn = sqlite3.connect('bot_data.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute(
         '''SELECT user_id, choice FROM votes WHERE match_id = ?''', (match_id,))
@@ -55,7 +55,7 @@ def get_votes(match_id):
 
 
 def add_points(user_id, points):
-    conn = sqlite3.connect('bot_data.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''INSERT INTO leaderboard (user_id, points) 
                  VALUES (?, ?) 
@@ -69,7 +69,7 @@ def add_points(user_id, points):
 
 
 def get_leaderboard():
-    conn = sqlite3.connect('bot_data.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''SELECT user_id, points FROM leaderboard ORDER BY points DESC''')
     results = c.fetchall()
@@ -80,7 +80,7 @@ def get_leaderboard():
 
 
 def set_channel(channel_id):
-    conn = sqlite3.connect('bot_data.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute(
         '''INSERT OR REPLACE INTO settings (id, channel_id) VALUES (1, ?)''', (channel_id,))
@@ -91,7 +91,7 @@ def set_channel(channel_id):
 
 
 def get_channel():
-    conn = sqlite3.connect('bot_data.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''SELECT channel_id FROM settings WHERE id = 1''')
     result = c.fetchone()
