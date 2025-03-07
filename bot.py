@@ -152,50 +152,29 @@ async def help_vote(ctx):
     await ctx.send(help_message)
 
 # Commande !vote
-@bot.command()
-async def vote(ctx, match_id: int = None, *, team: str = None):
-    # Vérifier si les paramètres sont fournis
-    if match_id is None or team is None:
-        await ctx.send("❌ Format incorrect. Utilisez `!vote <numéro du match> <nom de l'équipe>`\nPour plus d'aide, tapez `!help_vote`")
-        return
-
-    # Vérifier si le match existe
-    if match_id < 1 or match_id > len(matches):
-        await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont de 1 à {len(matches)}.\nPour voir la liste des matchs, tapez `!help_vote`")
-        return
-
-    match = matches[match_id]
-    team1, team2 = match["teams"]
-
-    # Normaliser le nom de l'équipe pour la comparaison
-    team = team.strip()
-    
-    if team.lower() not in [team1.lower(), team2.lower()]:
-        await ctx.send(f"❌ Équipe invalide. Pour le match {match_id}, vous pouvez seulement voter pour :\n- **{team1}**\n- **{team2}**")
-        return
-
-    # Trouver le nom exact de l'équipe (pour garder la casse correcte)
-    if team.lower() == team1.lower():
-        team = team1
-    else:
-        team = team2
-
-    # Enregistrement du vote
-    user = str(ctx.author.id)
-    if user not in votes:
-        votes[user] = {}
-
-    # Vérifier si l'utilisateur change son vote
-    changing_vote = str(match_id) in votes[user]
-    old_vote = votes[user].get(str(match_id))
-
-    votes[user][str(match_id)] = team
-    sauvegarder_votes()
-
-    if changing_vote:
-        await ctx.send(f"✅ {ctx.author.mention}, tu as changé ton vote de **{old_vote}** à **{team}** pour le match **{team1}** vs **{team2}**.")
-    else:
-        await ctx.send(f"✅ {ctx.author.mention}, tu as voté pour **{team}** dans le match **{team1}** vs **{team2}**.")
+@bot.command(name="vote")
+async def vote(ctx, match_id: str, choice: str):
+    try:
+        print(f"Vote reçu de {ctx.author.id} pour match {match_id}: {choice}")
+        
+        db_path = os.path.join(os.getenv('RENDER_DB_PATH', '.'), 'bot_database.db')
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # Insérer ou mettre à jour le vote
+        cursor.execute('''INSERT OR REPLACE INTO votes (user_id, match_id, choice)
+                         VALUES (?, ?, ?)''', (ctx.author.id, match_id, choice))
+        
+        conn.commit()
+        print(f"Vote enregistré avec succès")
+        await ctx.send(f"Vote enregistré pour le match {match_id}: {choice}")
+        
+    except Exception as e:
+        print(f"Erreur dans vote: {str(e)}")
+        await ctx.send("Une erreur s'est produite lors de l'enregistrement de votre vote.")
+    finally:
+        if 'conn' in locals():
+            conn.close()
 
 # Commande !supprimer_vote
 
@@ -287,26 +266,44 @@ Pénalité : Chaque match non pronostiqué à temps entraîne une pénalité de 
 # Commande pour voir le récapitulatif des votes
 @bot.command(name="recap")
 async def recap(ctx):
-    print(f"Commande recap appelée par {ctx.author.id}")
-    
-    conn = sqlite3.connect('bot_database.db')
-    cursor = conn.cursor()
-    
-    # Récupérer tous les votes de l'utilisateur
-    cursor.execute('SELECT match_id, choice FROM votes WHERE user_id = ?', (ctx.author.id,))
-    votes = cursor.fetchall()
-    print(f"Votes trouvés pour {ctx.author.id}: {votes}")
-    
-    if not votes:
-        await ctx.send("Vous n'avez pas encore voté pour un match.")
-        return
+    try:
+        print(f"Commande recap appelée par {ctx.author.id}")
         
-    recap_message = "Voici vos votes :\n"
-    for match_id, choice in votes:
-        recap_message += f"Match {match_id}: {choice}\n"
-    
-    await ctx.send(recap_message)
-    conn.close()
+        # Utiliser le chemin correct de la base de données
+        db_path = os.path.join(os.getenv('RENDER_DB_PATH', '.'), 'bot_database.db')
+        print(f"Chemin de la base de données: {db_path}")
+        
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # Vérifier si la table votes existe
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='votes'")
+        if not cursor.fetchone():
+            print("La table 'votes' n'existe pas!")
+            await ctx.send("Erreur: La table des votes n'existe pas.")
+            return
+        
+        # Récupérer tous les votes de l'utilisateur
+        cursor.execute('SELECT match_id, choice FROM votes WHERE user_id = ?', (ctx.author.id,))
+        votes = cursor.fetchall()
+        print(f"Votes trouvés pour {ctx.author.id}: {votes}")
+        
+        if not votes:
+            await ctx.send("Vous n'avez pas encore voté pour un match.")
+            return
+            
+        recap_message = "Voici vos votes :\n"
+        for match_id, choice in votes:
+            recap_message += f"Match {match_id}: {choice}\n"
+        
+        await ctx.send(recap_message)
+        
+    except Exception as e:
+        print(f"Erreur dans recap: {str(e)}")
+        await ctx.send("Une erreur s'est produite lors de la récupération de vos votes.")
+    finally:
+        if 'conn' in locals():
+            conn.close()
 
 # Commande pour voir les votes d'un utilisateur spécifique
 @bot.command(name="voir_votes")
