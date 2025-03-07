@@ -1,10 +1,12 @@
 import sqlite3
+import os
 
-# Initialisation de la base de données
-
+# Définir le chemin de la base de données
+DB_PATH = os.path.join(os.getenv('RENDER_DB_PATH', '.'), 'bot_data.db')
 
 def create_db():
-    conn = sqlite3.connect('bot_data.db')
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)  # Crée le dossier si nécessaire
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
 
     # Table pour stocker les votes
@@ -29,11 +31,8 @@ def create_db():
     conn.commit()
     conn.close()
 
-# Fonction pour enregistrer un vote
-
-
 def save_vote(user_id, match_id, choice):
-    conn = sqlite3.connect('bot_data.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''INSERT OR REPLACE INTO votes (user_id, match_id, choice) VALUES (?, ?, ?)''',
               (user_id, match_id, choice))

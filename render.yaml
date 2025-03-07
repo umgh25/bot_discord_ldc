@@ -5,6 +5,11 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: python3 bot.py
     disk:
-      name: data
+      name: sqlite-data
       mountPath: /data
-      sizeGB: 1 
+      sizeGB: 1
+    envVars:
+      - key: RENDER_DB_PATH
+        value: /data
+      - key: DISCORD_TOKEN
+        sync: false 
