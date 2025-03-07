@@ -9,11 +9,14 @@ __pycache__/
 venv/
 ENV/
 
+# Base de données
+*.db
+bot_database.db
+*.sqlite
+*.sqlite3
+
 # Fichiers de données
-*.pyc
-*.pyo
-*.pyd
-.Python
+*.json
 
 # Autres fichiers à ignorer
 *.log
