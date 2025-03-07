@@ -5,22 +5,18 @@ import os
 DB_PATH = os.path.join(os.getenv('RENDER_DB_PATH', '.'), 'bot_database.db')
 
 def create_db():
-    print(f"Création/connexion à la base de données : {DB_PATH}")
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)  # Crée le dossier si nécessaire
-    
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
 
-    print("Création des tables...")
     # Table pour stocker les votes
     c.execute('''CREATE TABLE IF NOT EXISTS votes (
-        user_id INTEGER,
+        user_id INTEGER PRIMARY KEY,
         match_id TEXT,
-        choice TEXT,
-        PRIMARY KEY (user_id, match_id)
+        choice TEXT
     )''')
 
-    # Table pour stocker les points
+    # Table pour stocker les points des utilisateurs
     c.execute('''CREATE TABLE IF NOT EXISTS leaderboard (
         user_id INTEGER PRIMARY KEY,
         points INTEGER DEFAULT 0
@@ -33,8 +29,7 @@ def create_db():
     )''')
 
     conn.commit()
-    print("Base de données initialisée avec succès!")
-    return conn
+    conn.close()
 
 def save_vote(user_id, match_id, choice):
     conn = sqlite3.connect(DB_PATH)

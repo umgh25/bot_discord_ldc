@@ -14,9 +14,13 @@ ENV/
 bot_database.db
 *.sqlite
 *.sqlite3
+*.json
 
 # Fichiers de données
-*.json
+*.pyc
+*.pyo
+*.pyd
+.Python
 
 # Autres fichiers à ignorer
 *.log
