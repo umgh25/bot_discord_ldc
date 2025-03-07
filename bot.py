@@ -5,6 +5,8 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 from keep_alive import keep_alive
+from database import save_vote, get_votes, get_leaderboard, add_points
+import sqlite3
 
 # Obtenir le chemin absolu du fichier .env
 env_path = Path('.') / '.env'
@@ -202,18 +204,24 @@ async def vote(ctx, match_id: int = None, *, team: str = None):
 async def supprimer_vote(ctx, match_id: int):
     user_id = str(ctx.author.id)
 
-    if user_id not in votes or str(match_id) not in votes[user_id]:
+    conn = sqlite3.connect('bot_database.db')
+    cursor = conn.cursor()
+    
+    # Vérifier si le vote existe
+    cursor.execute('SELECT choice FROM votes WHERE user_id = ? AND match_id = ?', 
+                  (user_id, str(match_id)))
+    result = cursor.fetchone()
+    
+    if not result:
         await ctx.send(f"❌ {ctx.author.mention}, tu n'as pas encore voté pour ce match `{match_id}`.")
+        conn.close()
         return
 
     # Suppression du vote
-    del votes[user_id][str(match_id)]
-
-    # Si l'utilisateur n'a plus de votes, on le supprime aussi du fichier
-    if not votes[user_id]:
-        del votes[user_id]
-
-    sauvegarder_votes()  # Sauvegarde automatique après suppression
+    cursor.execute('DELETE FROM votes WHERE user_id = ? AND match_id = ?', 
+                  (user_id, str(match_id)))
+    conn.commit()
+    conn.close()
 
     await ctx.send(f"✅ {ctx.author.mention}, ton vote pour le match `{match_id}` a été supprimé !")
 
@@ -281,15 +289,21 @@ Pénalité : Chaque match non pronostiqué à temps entraîne une pénalité de 
 async def recap(ctx):
     user_id = str(ctx.author.id)
     
-    if user_id not in votes or not votes[user_id]:
+    # Récupérer les votes depuis la base de données
+    conn = sqlite3.connect('bot_database.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT match_id, choice FROM votes WHERE user_id = ?', (user_id,))
+    user_votes = cursor.fetchall()
+    conn.close()
+    
+    if not user_votes:
         await ctx.send(f"❌ {ctx.author.mention}, tu n'as pas encore voté pour aucun match.")
         return
         
     recap_message = f"**📊 Récapitulatif de vos votes {ctx.author.mention} :**\n\n"
     
     # Trier les votes par numéro de match
-    user_votes = votes[user_id]
-    sorted_votes = sorted(user_votes.items(), key=lambda x: int(x[0]))
+    sorted_votes = sorted(user_votes, key=lambda x: int(x[0]))
     
     for match_id, voted_team in sorted_votes:
         match = matches[int(match_id)]
@@ -312,108 +326,6 @@ async def recap(ctx):
 
     await ctx.send(recap_message)
 
-# Commande pour voir le récapitulatif des votes
-@bot.command(name="all_votes")
-async def all_votes(ctx):
-    if not votes:
-        await ctx.send("❌ Aucun vote n'a encore été enregistré.")
-        return
-
-    # Créer un dictionnaire pour organiser les votes par match
-    votes_par_match = {}
-    for match_id in matches.keys():
-        votes_par_match[str(match_id)] = {"votes": {}}
-
-    # Récupérer tous les utilisateurs une seule fois
-    users_cache = {}
-    for user_id in votes.keys():
-        try:
-            user = await bot.fetch_user(int(user_id))
-            users_cache[user_id] = user.name
-        except:
-            users_cache[user_id] = f"Utilisateur_{user_id}"
-
-    # Compter les votes pour chaque match
-    for user_id, user_votes in votes.items():
-        user_name = users_cache[user_id]
-        for match_id, team in user_votes.items():
-            if team not in votes_par_match[match_id]["votes"]:
-                votes_par_match[match_id]["votes"][team] = []
-            votes_par_match[match_id]["votes"][team].append(user_name)
-
-    # Créer le message de récapitulatif
-    message = "**🌟 RÉCAPITULATIF GLOBAL DES VOTES 🌟**\n\n"
-
-    for match_id in sorted(votes_par_match.keys(), key=int):
-        match = matches[int(match_id)]
-        team1, team2 = match["teams"]
-        message += f"**📌 Match {match_id}** : {team1} vs {team2}\n"
-        message += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-
-        match_votes = votes_par_match[match_id]["votes"]
-        if not match_votes:
-            message += "❌ Aucun vote pour ce match\n"
-        else:
-            total_votes = sum(len(voters) for voters in match_votes.values())
-            
-            # Afficher les votes pour chaque équipe
-            for team in [team1, team2]:
-                voters = match_votes.get(team, [])
-                percentage = (len(voters) / total_votes * 100) if total_votes > 0 else 0
-                
-                # Créer une barre de progression
-                progress_bar = "🟦" * int(percentage/10) + "⬜" * (10 - int(percentage/10))
-                
-                message += f"\n**{team}**\n"
-                message += f"└─ Votes : **{len(voters)}** ({percentage:.1f}%)\n"
-                message += f"└─ Progression : {progress_bar}\n"
-                if voters:
-                    message += f"└─ 👥 Votants : {', '.join(sorted(voters))}\n"
-
-        message += "\n"
-
-    # Ajouter des statistiques globales détaillées
-    total_users = len(votes)
-    total_possible_votes = len(matches)
-    total_votes_cast = sum(len(user_votes) for user_votes in votes.values())
-    
-    message += "**📊 STATISTIQUES GLOBALES 📊**\n"
-    message += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-    message += f"👥 **Participation**\n"
-    message += f"└─ Nombre de participants : **{total_users}**\n"
-    message += f"└─ Total des votes : **{total_votes_cast}/{total_users * total_possible_votes}**\n"
-    message += f"└─ Moyenne par utilisateur : **{total_votes_cast/total_users:.1f}/{total_possible_votes}**\n\n"
-
-    # Ajouter le classement des participants
-    message += "🏆 **Classement des participants**\n"
-    
-    # Utiliser le cache des utilisateurs pour le classement
-    user_rankings = [(users_cache[user_id], len(user_votes)) 
-                    for user_id, user_votes in votes.items()]
-    user_rankings.sort(key=lambda x: x[1], reverse=True)
-    
-    for i, (username, vote_count) in enumerate(user_rankings, 1):
-        medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else "👤"
-        message += f"{medal} **{username}** : {vote_count} vote(s)\n"
-
-    try:
-        await ctx.send(message)
-    except discord.HTTPException:
-        # Si le message est trop long, on le divise en plusieurs parties
-        messages = []
-        current_message = ""
-        for line in message.split('\n'):
-            if len(current_message) + len(line) + 1 > 1900:  # Discord limite à 2000 caractères
-                messages.append(current_message)
-                current_message = line
-            else:
-                current_message += line + '\n'
-        if current_message:
-            messages.append(current_message)
-            
-        for msg in messages:
-            await ctx.send(msg)
-
 # Commande pour voir les votes d'un utilisateur spécifique
 @bot.command(name="voir_votes")
 async def voir_votes(ctx, member: discord.Member = None):
@@ -423,15 +335,21 @@ async def voir_votes(ctx, member: discord.Member = None):
 
     user_id = str(member.id)
     
-    if user_id not in votes or not votes[user_id]:
+    # Récupérer les votes depuis la base de données
+    conn = sqlite3.connect('bot_database.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT match_id, choice FROM votes WHERE user_id = ?', (user_id,))
+    user_votes = cursor.fetchall()
+    conn.close()
+    
+    if not user_votes:
         await ctx.send(f"❌ {member.mention} n'a pas encore voté pour aucun match.")
         return
         
     recap_message = f"**📊 Votes de {member.mention} :**\n\n"
     
     # Trier les votes par numéro de match
-    user_votes = votes[user_id]
-    sorted_votes = sorted(user_votes.items(), key=lambda x: int(x[0]))
+    sorted_votes = sorted(user_votes, key=lambda x: int(x[0]))
     
     for match_id, voted_team in sorted_votes:
         match = matches[int(match_id)]
@@ -439,7 +357,6 @@ async def voir_votes(ctx, member: discord.Member = None):
         recap_message += f"**Match {match_id}** : {team1} vs {team2}\n"
         recap_message += f"└─ Vote : **{voted_team}** ⚽\n\n"
     
-    # Ajouter le nombre total de votes
     total_votes = len(user_votes)
     matches_restants = len(matches) - total_votes
     
@@ -447,101 +364,102 @@ async def voir_votes(ctx, member: discord.Member = None):
     recap_message += f"└─ Votes effectués : **{total_votes}/{len(matches)}**\n"
     recap_message += f"└─ Matches restants : **{matches_restants}**\n"
 
-    if matches_restants > 0:
-        recap_message += f"\n💡 Il reste encore {matches_restants} match(es) à voter !"
-    else:
-        recap_message += f"\n✅ A voté pour tous les matches !"
-
     await ctx.send(recap_message)
 
 # Commande pour modifier un vote existant
 @bot.command(name="modifier_vote")
 async def modifier_vote(ctx, match_id: int = None, *, team: str = None):
-    user_id = str(ctx.author.id)
-    
-    # Vérifier si les paramètres sont fournis
     if match_id is None or team is None:
         await ctx.send("❌ Format incorrect. Utilisez `!modifier_vote <numéro du match> <nom de l'équipe>`")
         return
 
+    user_id = str(ctx.author.id)
+    
     # Vérifier si l'utilisateur a déjà voté pour ce match
-    if user_id not in votes or str(match_id) not in votes[user_id]:
+    conn = sqlite3.connect('bot_database.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT choice FROM votes WHERE user_id = ? AND match_id = ?', (user_id, str(match_id)))
+    result = cursor.fetchone()
+    
+    if not result:
         await ctx.send(f"❌ Vous n'avez pas encore voté pour le match {match_id}. Utilisez `!vote` pour voter.")
+        conn.close()
         return
 
+    ancien_vote = result[0]
+    
     # Vérifier si le match existe
     if match_id < 1 or match_id > len(matches):
         await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont de 1 à {len(matches)}.")
+        conn.close()
         return
 
     match = matches[match_id]
     team1, team2 = match["teams"]
-    ancien_vote = votes[user_id][str(match_id)]
 
-    # Normaliser le nom de l'équipe pour la comparaison
+    # Normaliser le nom de l'équipe
     team = team.strip()
     
     if team.lower() not in [team1.lower(), team2.lower()]:
         await ctx.send(f"❌ Équipe invalide. Pour le match {match_id}, vous pouvez seulement voter pour :\n- **{team1}**\n- **{team2}**")
+        conn.close()
         return
 
     # Si l'utilisateur vote pour la même équipe
     if team.lower() == ancien_vote.lower():
         await ctx.send(f"ℹ️ Vous avez déjà voté pour **{ancien_vote}** dans ce match.")
+        conn.close()
         return
 
-    # Trouver le nom exact de l'équipe (pour garder la casse correcte)
+    # Trouver le nom exact de l'équipe
     if team.lower() == team1.lower():
         team = team1
     else:
         team = team2
 
     # Modifier le vote
-    votes[user_id][str(match_id)] = team
-    sauvegarder_votes()
+    cursor.execute('UPDATE votes SET choice = ? WHERE user_id = ? AND match_id = ?', 
+                  (team, user_id, str(match_id)))
+    conn.commit()
+    conn.close()
 
     await ctx.send(f"✅ {ctx.author.mention}, votre vote a été modifié !\n"
                   f"**Match {match_id}** : {team1} vs {team2}\n"
                   f"└─ Ancien vote : **{ancien_vote}**\n"
-                  f"└─ Nouveau vote : **{team}** 🔄")
+                  f"└─ Nouveau vote : **{team}** ��")
 
 # Commande pour attribuer des points
 @bot.command(name="point")
 @commands.has_permissions(administrator=True)
 async def point(ctx, member: discord.Member = None, match_id: int = None, point_value: int = None):
-    # Vérifier si tous les paramètres sont fournis
     if None in (member, match_id, point_value):
         await ctx.send("❌ Format incorrect. Utilisez `!point @utilisateur 1 1` (premier chiffre = numéro du match, deuxième chiffre = points)")
         return
 
-    # Vérifier si le match existe
     if match_id < 1 or match_id > len(matches):
         await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont de 1 à {len(matches)}.")
         return
 
-    # Vérifier si les points sont valides (-1 ou 1)
     if point_value not in [-1, 1]:
         await ctx.send("❌ Les points doivent être 1 (victoire) ou -1 (absence)")
         return
 
     user_id = str(member.id)
     
-    # Initialiser la structure des points si nécessaire
-    if user_id not in points:
-        points[user_id] = {}
+    # Ajouter les points dans la base de données
+    add_points(user_id, point_value)
     
-    # Enregistrer les points pour ce match
-    points[user_id][f"match{match_id}"] = point_value
-    sauvegarder_points()
+    # Récupérer le vote de l'utilisateur pour ce match
+    conn = sqlite3.connect('bot_database.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT choice FROM votes WHERE user_id = ? AND match_id = ?', (user_id, str(match_id)))
+    result = cursor.fetchone()
+    user_vote = result[0] if result else "N'a pas voté"
+    conn.close()
     
     # Récupérer les informations du match
     match = matches[match_id]
     team1, team2 = match["teams"]
-    
-    # Récupérer le vote de l'utilisateur pour ce match
-    user_vote = "N'a pas voté"
-    if user_id in votes and str(match_id) in votes[user_id]:
-        user_vote = votes[user_id][str(match_id)]
     
     # Créer le message de confirmation
     if point_value > 0:
@@ -558,25 +476,19 @@ async def point(ctx, member: discord.Member = None, match_id: int = None, point_
     
     await ctx.send(confirmation)
 
-# Commande pour voir le classement des points
+# Commande pour voir le classement
 @bot.command(name="classement")
 async def classement(ctx):
-    if not points:
+    # Récupérer le classement depuis la base de données
+    leaderboard = get_leaderboard()
+    
+    if not leaderboard:
         await ctx.send("❌ Aucun point n'a encore été attribué.")
         return
     
-    # Calculer les points totaux pour chaque utilisateur
-    totaux = {}
-    for user_id, user_points in points.items():
-        total = sum(user_points.values())
-        totaux[user_id] = total
-    
-    # Trier les utilisateurs par points
-    classement = sorted(totaux.items(), key=lambda x: x[1], reverse=True)
-    
     message = "**🏆 CLASSEMENT GÉNÉRAL 🏆**\n\n"
     
-    for i, (user_id, total) in enumerate(classement, 1):
+    for i, (user_id, points) in enumerate(leaderboard, 1):
         try:
             user = await bot.fetch_user(int(user_id))
             username = user.name
@@ -584,7 +496,7 @@ async def classement(ctx):
             username = f"Utilisateur_{user_id}"
             
         medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else "👤"
-        message += f"{medal} **{username}** : {total} point(s)\n"
+        message += f"{medal} **{username}** : {points} point(s)\n"
     
     await ctx.send(message)
 
@@ -592,16 +504,16 @@ async def classement(ctx):
 @bot.command(name="reset_points")
 @commands.has_permissions(administrator=True)
 async def reset_points(ctx, member: discord.Member = None):
-    global points
+    conn = sqlite3.connect('bot_database.db')
+    cursor = conn.cursor()
     
-    # Si aucun membre n'est spécifié, demander confirmation pour réinitialiser tous les points
     if member is None:
+        # Demander confirmation pour réinitialiser tous les points
         confirmation_message = await ctx.send("⚠️ Voulez-vous vraiment réinitialiser **TOUS** les points ?\n"
                                             "Cette action est irréversible !\n"
                                             "✅ = Confirmer\n"
                                             "❌ = Annuler")
         
-        # Ajouter les réactions pour la confirmation
         await confirmation_message.add_reaction("✅")
         await confirmation_message.add_reaction("❌")
         
@@ -612,8 +524,8 @@ async def reset_points(ctx, member: discord.Member = None):
             reaction, user = await bot.wait_for('reaction_add', timeout=30.0, check=check)
             
             if str(reaction.emoji) == "✅":
-                points = {}  # Réinitialiser tous les points
-                sauvegarder_points()
+                cursor.execute('DELETE FROM leaderboard')
+                conn.commit()
                 await ctx.send("✅ Tous les points ont été réinitialisés !")
             else:
                 await ctx.send("❌ Réinitialisation annulée.")
@@ -624,12 +536,11 @@ async def reset_points(ctx, member: discord.Member = None):
     else:
         # Réinitialiser les points d'un utilisateur spécifique
         user_id = str(member.id)
-        if user_id in points:
-            del points[user_id]
-            sauvegarder_points()
-            await ctx.send(f"✅ Les points de {member.mention} ont été réinitialisés !")
-        else:
-            await ctx.send(f"ℹ️ {member.mention} n'avait pas de points enregistrés.")
+        cursor.execute('DELETE FROM leaderboard WHERE user_id = ?', (user_id,))
+        conn.commit()
+        await ctx.send(f"✅ Les points de {member.mention} ont été réinitialisés !")
+    
+    conn.close()
 
 @reset_points.error
 async def reset_points_error(ctx, error):
