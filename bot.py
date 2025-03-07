@@ -287,44 +287,26 @@ Pénalité : Chaque match non pronostiqué à temps entraîne une pénalité de 
 # Commande pour voir le récapitulatif des votes
 @bot.command(name="recap")
 async def recap(ctx):
-    user_id = str(ctx.author.id)
+    print(f"Commande recap appelée par {ctx.author.id}")
     
-    # Récupérer les votes depuis la base de données
     conn = sqlite3.connect('bot_database.db')
     cursor = conn.cursor()
-    cursor.execute('SELECT match_id, choice FROM votes WHERE user_id = ?', (user_id,))
-    user_votes = cursor.fetchall()
-    conn.close()
     
-    if not user_votes:
-        await ctx.send(f"❌ {ctx.author.mention}, tu n'as pas encore voté pour aucun match.")
+    # Récupérer tous les votes de l'utilisateur
+    cursor.execute('SELECT match_id, choice FROM votes WHERE user_id = ?', (ctx.author.id,))
+    votes = cursor.fetchall()
+    print(f"Votes trouvés pour {ctx.author.id}: {votes}")
+    
+    if not votes:
+        await ctx.send("Vous n'avez pas encore voté pour un match.")
         return
         
-    recap_message = f"**📊 Récapitulatif de vos votes {ctx.author.mention} :**\n\n"
+    recap_message = "Voici vos votes :\n"
+    for match_id, choice in votes:
+        recap_message += f"Match {match_id}: {choice}\n"
     
-    # Trier les votes par numéro de match
-    sorted_votes = sorted(user_votes, key=lambda x: int(x[0]))
-    
-    for match_id, voted_team in sorted_votes:
-        match = matches[int(match_id)]
-        team1, team2 = match["teams"]
-        recap_message += f"**Match {match_id}** : {team1} vs {team2}\n"
-        recap_message += f"➡️ Votre vote : **{voted_team}**\n\n"
-    
-    # Ajouter le nombre total de votes
-    total_votes = len(user_votes)
-    matches_restants = len(matches) - total_votes
-    
-    recap_message += f"**📈 Statistiques :**\n"
-    recap_message += f"- Votes effectués : **{total_votes}/{len(matches)}**\n"
-    
-    if matches_restants > 0:
-        recap_message += f"- Matches restants à voter : **{matches_restants}**\n"
-        recap_message += f"\n💡 Utilisez `!help_vote` pour voir la liste des matches disponibles."
-    else:
-        recap_message += f"\n✅ Vous avez voté pour tous les matches !"
-
     await ctx.send(recap_message)
+    conn.close()
 
 # Commande pour voir les votes d'un utilisateur spécifique
 @bot.command(name="voir_votes")
@@ -426,7 +408,7 @@ async def modifier_vote(ctx, match_id: int = None, *, team: str = None):
     await ctx.send(f"✅ {ctx.author.mention}, votre vote a été modifié !\n"
                   f"**Match {match_id}** : {team1} vs {team2}\n"
                   f"└─ Ancien vote : **{ancien_vote}**\n"
-                  f"└─ Nouveau vote : **{team}** ��")
+                  f"└─ Nouveau vote : **{team}**")
 
 # Commande pour attribuer des points
 @bot.command(name="point")
