@@ -282,8 +282,8 @@ Pénalité : Chaque match non pronostiqué à temps entraîne une pénalité de 
 async def recap(ctx):
     user_id = str(ctx.author.id)
     
-    # Connexion unique à la base de données
-    conn = sqlite3.connect(DB_PATH)
+    # Connexion à la base de données
+    conn = sqlite3.connect('bot_database.db')
     c = conn.cursor()
     
     # Récupérer tous les votes de l'utilisateur
@@ -320,7 +320,6 @@ async def recap(ctx):
     else:
         recap_message += f"\n✅ Vous avez voté pour tous les matches !"
 
-    # Envoyer un seul message
     await ctx.send(recap_message)
 
 # Commande pour voir le récapitulatif des votes
