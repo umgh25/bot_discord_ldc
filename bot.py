@@ -5,6 +5,7 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 from keep_alive import keep_alive
+import sqlite3
 
 # Obtenir le chemin absolu du fichier .env
 env_path = Path('.') / '.env'
@@ -281,14 +282,23 @@ Pénalité : Chaque match non pronostiqué à temps entraîne une pénalité de 
 async def recap(ctx):
     user_id = str(ctx.author.id)
     
-    if user_id not in votes or not votes[user_id]:
+    # Connexion unique à la base de données
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    
+    # Récupérer tous les votes de l'utilisateur
+    c.execute('SELECT match_id, choice FROM votes WHERE user_id = ?', (user_id,))
+    user_votes = dict(c.fetchall())
+    
+    conn.close()
+    
+    if not user_votes:
         await ctx.send(f"❌ {ctx.author.mention}, tu n'as pas encore voté pour aucun match.")
         return
         
     recap_message = f"**📊 Récapitulatif de vos votes {ctx.author.mention} :**\n\n"
     
     # Trier les votes par numéro de match
-    user_votes = votes[user_id]
     sorted_votes = sorted(user_votes.items(), key=lambda x: int(x[0]))
     
     for match_id, voted_team in sorted_votes:
@@ -302,14 +312,15 @@ async def recap(ctx):
     matches_restants = len(matches) - total_votes
     
     recap_message += f"**📈 Statistiques :**\n"
-    recap_message += f"- Votes effectués : **{total_votes}/{len(matches)}**\n"
+    recap_message += f"Votes effectués : **{total_votes}/{len(matches)}**\n"
     
     if matches_restants > 0:
-        recap_message += f"- Matches restants à voter : **{matches_restants}**\n"
+        recap_message += f"Matches restants à voter : **{matches_restants}**\n"
         recap_message += f"\n💡 Utilisez `!help_vote` pour voir la liste des matches disponibles."
     else:
         recap_message += f"\n✅ Vous avez voté pour tous les matches !"
 
+    # Envoyer un seul message
     await ctx.send(recap_message)
 
 # Commande pour voir le récapitulatif des votes
