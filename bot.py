@@ -157,21 +157,31 @@ async def vote(ctx, match_id: int = None, *, team: str = None):
     print(f"Match ID: {match_id}")
     print(f"Team: {team}")
     
+    # Vérifier si le match existe
+    if match_id < 1 or match_id > len(matches):
+        await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont de 1 à {len(matches)}.")
+        return
+
+    # Récupérer les équipes du match
+    match = matches[match_id]
+    team1, team2 = match["teams"]
+    
     try:
         # Enregistrement du vote
         user_id = str(ctx.author.id)
         success = save_vote(user_id, str(match_id), team)
         print(f"Résultat de l'enregistrement: {'Succès' if success else 'Échec'}")
+        
+        if success:
+            await ctx.send(f"✅ {ctx.author.mention}, tu as voté pour **{team}** dans le match **{team1}** vs **{team2}**.")
+        else:
+            await ctx.send(f"❌ {ctx.author.mention}, il y a eu une erreur lors de l'enregistrement de ton vote.")
+            
     except Exception as e:
         print(f"Erreur lors du vote: {str(e)}")
-        success = False
+        await ctx.send(f"❌ Une erreur s'est produite lors du vote.")
     
     print("=== FIN COMMANDE VOTE ===")
-
-    if success:
-        await ctx.send(f"✅ {ctx.author.mention}, tu as voté pour **{team}** dans le match **{team1}** vs **{team2}**.")
-    else:
-        await ctx.send(f"❌ {ctx.author.mention}, il y a eu une erreur lors de l'enregistrement de ton vote.")
 
 # Commande !supprimer_vote
 
