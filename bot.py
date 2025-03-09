@@ -77,14 +77,11 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 # Liste des matchs
 matches = {
-    1: {"teams": ("Club Bruges", "Aston Villa")},
-    2: {"teams": ("Real Madrid", "Atlético Madrid")},
-    3: {"teams": ("PSV Eindhoven", "Arsenal")},
-    4: {"teams": ("Borussia Dortmund", "Lille")},
-    5: {"teams": ("Feyenoord", "Inter Milan")},
-    6: {"teams": ("Benfica", "FC Barcelone")},
-    7: {"teams": ("Bayern Munich", "Bayer Leverkusen")},
-    8: {"teams": ("Paris Saint-Germain", "Liverpool")},
+    1: ("Arsenal", "Bayern Munich"),
+    2: ("Real Madrid", "Manchester City"),
+    3: ("Atletico Madrid", "Dortmund"),
+    4: ("PSG", "Barcelona"),
+    # ... autres matchs
 }
 
 # Événement quand le bot est prêt
@@ -139,7 +136,7 @@ async def help_vote(ctx):
 
     # Ajouter la liste des matchs
     for match_id, match in matches.items():
-        team1, team2 = match["teams"]
+        team1, team2 = match
         help_message += f"\n**Match {match_id}** : {team1} vs {team2}"
 
     help_message += "\n\n**⚠️ Rappels importants :**"
@@ -157,19 +154,33 @@ async def vote(ctx, match_id: int = None, *, team: str = None):
     print(f"Match ID: {match_id}")
     print(f"Team: {team}")
     
+    # Vérifier si les paramètres sont fournis
+    if match_id is None or team is None:
+        await ctx.send("❌ Format incorrect. Utilisez `!vote <numéro du match> <nom de l'équipe>`")
+        return
+    
     # Vérifier si le match existe
-    if match_id < 1 or match_id > len(matches):
+    if match_id not in matches:
         await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont de 1 à {len(matches)}.")
         return
 
     # Récupérer les équipes du match
-    match = matches[match_id]
-    team1, team2 = match["teams"]
+    team1, team2 = matches[match_id]
+    
+    # Normaliser le nom de l'équipe pour la comparaison
+    team = team.strip()
+    if team.lower() not in [team1.lower(), team2.lower()]:
+        await ctx.send(f"❌ Équipe invalide. Pour le match {match_id}, vous pouvez seulement voter pour :\n- **{team1}**\n- **{team2}**")
+        return
+    
+    # Utiliser le nom exact de l'équipe (pour garder la casse correcte)
+    team = team1 if team.lower() == team1.lower() else team2
     
     try:
         # Enregistrement du vote
         user_id = str(ctx.author.id)
-        success = save_vote(user_id, str(match_id), team)
+        print(f"Tentative de sauvegarde : user_id={user_id}, match_id={match_id}, team={team}")
+        success = save_vote(user_id, match_id, team)
         print(f"Résultat de l'enregistrement: {'Succès' if success else 'Échec'}")
         
         if success:
@@ -281,7 +292,7 @@ async def recap(ctx):
     
     for match_id, voted_team in sorted_votes:
         match = matches[int(match_id)]
-        team1, team2 = match["teams"]
+        team1, team2 = match
         recap_message += f"**Match {match_id}** : {team1} vs {team2}\n"
         recap_message += f"➡️ Votre vote : **{voted_team}**\n\n"
     
@@ -334,7 +345,7 @@ async def all_votes(ctx):
 
     for match_id in sorted(votes_par_match.keys(), key=int):
         match = matches[int(match_id)]
-        team1, team2 = match["teams"]
+        team1, team2 = match
         message += f"**📌 Match {match_id}** : {team1} vs {team2}\n"
         message += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
 
@@ -423,7 +434,7 @@ async def voir_votes(ctx, member: discord.Member = None):
     
     for match_id, voted_team in sorted_votes:
         match = matches[int(match_id)]
-        team1, team2 = match["teams"]
+        team1, team2 = match
         recap_message += f"**Match {match_id}** : {team1} vs {team2}\n"
         recap_message += f"└─ Vote : **{voted_team}** ⚽\n\n"
     
@@ -463,7 +474,7 @@ async def modifier_vote(ctx, match_id: int = None, *, team: str = None):
         return
 
     match = matches[match_id]
-    team1, team2 = match["teams"]
+    team1, team2 = match
     ancien_vote = votes[user_id][str(match_id)]
 
     # Normaliser le nom de l'équipe pour la comparaison
@@ -524,7 +535,7 @@ async def point(ctx, member: discord.Member = None, match_id: int = None, point_
     
     # Récupérer les informations du match
     match = matches[match_id]
-    team1, team2 = match["teams"]
+    team1, team2 = match
     
     # Récupérer le vote de l'utilisateur pour ce match
     user_vote = "N'a pas voté"
