@@ -152,6 +152,10 @@ async def help_vote(ctx):
 # Commande !vote
 @bot.command()
 async def vote(ctx, match_id: int = None, *, team: str = None):
+    print(f"=== DÉBUT COMMANDE VOTE ===")
+    print(f"Match ID: {match_id}")
+    print(f"Team: {team}")
+    
     # Vérifier si les paramètres sont fournis
     if match_id is None or team is None:
         await ctx.send("❌ Format incorrect. Utilisez `!vote <numéro du match> <nom de l'équipe>`\nPour plus d'aide, tapez `!help_vote`")
@@ -178,22 +182,20 @@ async def vote(ctx, match_id: int = None, *, team: str = None):
     else:
         team = team2
 
+    # Avant d'enregistrer le vote
+    print("Tentative d'enregistrement du vote...")
+    
     # Enregistrement du vote
-    user = str(ctx.author.id)
-    if user not in votes:
-        votes[user] = {}
+    user_id = str(ctx.author.id)
+    success = save_vote(user_id, str(match_id), team)  # Assurez-vous que save_vote retourne True/False
+    
+    print(f"Résultat de l'enregistrement: {'Succès' if success else 'Échec'}")
+    print("=== FIN COMMANDE VOTE ===")
 
-    # Vérifier si l'utilisateur change son vote
-    changing_vote = str(match_id) in votes[user]
-    old_vote = votes[user].get(str(match_id))
-
-    votes[user][str(match_id)] = team
-    sauvegarder_votes()
-
-    if changing_vote:
-        await ctx.send(f"✅ {ctx.author.mention}, tu as changé ton vote de **{old_vote}** à **{team}** pour le match **{team1}** vs **{team2}**.")
-    else:
+    if success:
         await ctx.send(f"✅ {ctx.author.mention}, tu as voté pour **{team}** dans le match **{team1}** vs **{team2}**.")
+    else:
+        await ctx.send(f"❌ {ctx.author.mention}, il y a eu une erreur lors de l'enregistrement de ton vote.")
 
 # Commande !supprimer_vote
 
@@ -257,7 +259,7 @@ Mardi 11 mars 2025 :
 🕕 18h45 : FC Barcelone 🇪🇸 vs. Benfica 🇵🇹
 🕘 21h00 : Inter Milan 🇮🇹 vs. Feyenoord 🇳🇱
 🕘 21h00 : Bayer Leverkusen 🇩🇪 vs. Bayern Munich 🇩🇪
-🕘 21h00 : Liverpool 🏴󠁧󠁢󠁥󠁮󠁧󠁿 vs. Paris Saint-Germain 🇫🇷
+🕘 21h00 : Liverpool 🏴󠁧󠁢󠁥󠁮��󠁿 vs. Paris Saint-Germain 🇫🇷
 
 Mercredi 12 mars 2025 :
 🕕 18h45 : Lille 🇫🇷 vs. Borussia Dortmund 🇩🇪
