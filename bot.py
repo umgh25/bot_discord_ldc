@@ -5,6 +5,7 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 from keep_alive import keep_alive
+from database import save_vote
 
 # Obtenir le chemin absolu du fichier .env
 env_path = Path('.') / '.env'
@@ -259,7 +260,7 @@ Mardi 11 mars 2025 :
 🕕 18h45 : FC Barcelone 🇪🇸 vs. Benfica 🇵🇹
 🕘 21h00 : Inter Milan 🇮🇹 vs. Feyenoord 🇳🇱
 🕘 21h00 : Bayer Leverkusen 🇩🇪 vs. Bayern Munich 🇩🇪
-🕘 21h00 : Liverpool 🏴󠁧󠁢󠁥󠁮��󠁿 vs. Paris Saint-Germain 🇫🇷
+🕘 21h00 : Liverpool 🏴󠁧󠁢󠁥󠁮󠁧󠁿 vs. Paris Saint-Germain 🇫🇷
 
 Mercredi 12 mars 2025 :
 🕕 18h45 : Lille 🇫🇷 vs. Borussia Dortmund 🇩🇪
