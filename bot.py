@@ -152,6 +152,7 @@ async def help_vote(ctx):
 
 # Commande !vote
 @bot.command()
+@commands.max_concurrency(1, per=commands.BucketType.user)  # Limite à une exécution à la fois par utilisateur
 async def vote(ctx, match_id: int = None, *, team: str = None):
     print(f"=== DÉBUT COMMANDE VOTE ===")
     print(f"Match ID: {match_id}")
@@ -180,14 +181,22 @@ async def vote(ctx, match_id: int = None, *, team: str = None):
     team = team1 if team.lower() == team1.lower() else team2
     
     try:
-        user_id = str(ctx.author.id)
-        success = save_vote(user_id, match_id, team)
-        
-        if success:
-            await ctx.send(f"✅ {ctx.author.mention}, tu as voté pour **{team}** dans le match **{team1}** vs **{team2}**.")
+        # Vérifier si l'utilisateur a déjà voté pour ce match
+        existing_votes = supabase.table("votes").select("*").eq("user_id", str(ctx.author.id)).eq("match_id", match_id).execute()
+        if existing_votes.data:
+            # Si un vote existe déjà pour ce match, on le met à jour
+            result = supabase.table("votes").update({
+                "choice": team
+            }).eq("user_id", str(ctx.author.id)).eq("match_id", match_id).execute()
         else:
-            await ctx.send(f"❌ {ctx.author.mention}, il y a eu une erreur lors de l'enregistrement de ton vote.")
-            return
+            # Si pas de vote existant, on en crée un nouveau
+            result = supabase.table("votes").insert({
+                "user_id": str(ctx.author.id),
+                "match_id": match_id,
+                "choice": team
+            }).execute()
+        
+        await ctx.send(f"✅ {ctx.author.mention}, tu as voté pour **{team}** dans le match **{team1}** vs **{team2}**.")
             
     except Exception as e:
         print(f"Erreur lors du vote: {str(e)}")
