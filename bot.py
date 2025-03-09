@@ -180,16 +180,14 @@ async def vote(ctx, match_id: int = None, *, team: str = None):
     team = team1 if team.lower() == team1.lower() else team2
     
     try:
-        # Enregistrement du vote
         user_id = str(ctx.author.id)
-        print(f"Tentative de sauvegarde : user_id={user_id}, match_id={match_id}, team={team}")
         success = save_vote(user_id, match_id, team)
-        print(f"Résultat de l'enregistrement: {'Succès' if success else 'Échec'}")
         
         if success:
             await ctx.send(f"✅ {ctx.author.mention}, tu as voté pour **{team}** dans le match **{team1}** vs **{team2}**.")
         else:
             await ctx.send(f"❌ {ctx.author.mention}, il y a eu une erreur lors de l'enregistrement de ton vote.")
+            return
             
     except Exception as e:
         print(f"Erreur lors du vote: {str(e)}")
