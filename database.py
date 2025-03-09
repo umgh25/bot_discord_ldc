@@ -30,6 +30,9 @@ def save_vote(user_id, match_id, choice):
         print(f"Match ID: {match_id}")
         print(f"Choice: {choice}")
         
+        # Conversion explicite en entier
+        match_id = int(match_id)
+        
         result = supabase.table("votes").upsert({
             "user_id": user_id, 
             "match_id": match_id, 
