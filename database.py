@@ -1,9 +1,12 @@
 import os
 from supabase import create_client
 
-# Configuration Supabase
+# Configuration Supabase avec plus de logs
+print("Initialisation de Supabase...")
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+print(f"URL configurée: {SUPABASE_URL[:30]}...") # Affiche le début de l'URL pour vérification
+print(f"Clé configurée: {SUPABASE_KEY[:20]}...") # Affiche le début de la clé pour vérification
 
 # Initialisation du client Supabase
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -22,8 +25,10 @@ def create_db():
 
 def save_vote(user_id, match_id, choice):
     try:
-        print(f"URL Supabase: {SUPABASE_URL}")  # Pour vérifier l'URL
-        print(f"Tentative de sauvegarde: user={user_id}, match={match_id}, choice={choice}")
+        print(f"=== DÉBUT SAUVEGARDE VOTE ===")
+        print(f"User ID: {user_id}")
+        print(f"Match ID: {match_id}")
+        print(f"Choice: {choice}")
         
         result = supabase.table("votes").upsert({
             "user_id": user_id, 
@@ -31,10 +36,14 @@ def save_vote(user_id, match_id, choice):
             "choice": choice
         }).execute()
         
-        print(f"Résultat de l'opération: {result}")
+        print(f"Résultat: {result.data if hasattr(result, 'data') else result}")
+        print("=== FIN SAUVEGARDE VOTE ===")
         return True
     except Exception as e:
-        print(f"ERREUR: {str(e)}")
+        print(f"!!! ERREUR SAUVEGARDE VOTE !!!")
+        print(f"Type d'erreur: {type(e)}")
+        print(f"Message d'erreur: {str(e)}")
+        print("=== FIN ERREUR ===")
         return False
 
 # Fonction pour récupérer les votes d'un match
