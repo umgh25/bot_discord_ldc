@@ -30,12 +30,10 @@ def save_vote(user_id, match_id, choice):
         print(f"Match ID: {match_id}")
         print(f"Choice: {choice}")
         
-        # Conversion explicite en entier
-        match_id = int(match_id)
-        
-        result = supabase.table("votes").upsert({
-            "user_id": user_id, 
-            "match_id": match_id, 
+        # Création directe d'un nouveau vote sans vérification
+        result = supabase.table("votes").insert({
+            "user_id": user_id,
+            "match_id": match_id,
             "choice": choice
         }).execute()
         
