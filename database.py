@@ -22,15 +22,20 @@ def create_db():
 
 def save_vote(user_id, match_id, choice):
     try:
-        # INSERT OR REPLACE équivalent dans Supabase
-        # Nous utilisons upsert qui fait INSERT si n'existe pas, UPDATE si existe
-        supabase.table("votes").upsert({
+        print(f"URL Supabase: {SUPABASE_URL}")  # Pour vérifier l'URL
+        print(f"Tentative de sauvegarde: user={user_id}, match={match_id}, choice={choice}")
+        
+        result = supabase.table("votes").upsert({
             "user_id": user_id, 
             "match_id": match_id, 
             "choice": choice
         }).execute()
+        
+        print(f"Résultat de l'opération: {result}")
+        return True
     except Exception as e:
-        print(f"Erreur lors de l'enregistrement du vote: {e}")
+        print(f"ERREUR: {str(e)}")
+        return False
 
 # Fonction pour récupérer les votes d'un match
 def get_votes(match_id):
