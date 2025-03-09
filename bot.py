@@ -5,7 +5,7 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 from keep_alive import keep_alive
-from database import save_vote
+from database import *  # Importe toutes les fonctions de database.py
 
 # Obtenir le chemin absolu du fichier .env
 env_path = Path('.') / '.env'
@@ -157,40 +157,15 @@ async def vote(ctx, match_id: int = None, *, team: str = None):
     print(f"Match ID: {match_id}")
     print(f"Team: {team}")
     
-    # Vérifier si les paramètres sont fournis
-    if match_id is None or team is None:
-        await ctx.send("❌ Format incorrect. Utilisez `!vote <numéro du match> <nom de l'équipe>`\nPour plus d'aide, tapez `!help_vote`")
-        return
-
-    # Vérifier si le match existe
-    if match_id < 1 or match_id > len(matches):
-        await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont de 1 à {len(matches)}.\nPour voir la liste des matchs, tapez `!help_vote`")
-        return
-
-    match = matches[match_id]
-    team1, team2 = match["teams"]
-
-    # Normaliser le nom de l'équipe pour la comparaison
-    team = team.strip()
+    try:
+        # Enregistrement du vote
+        user_id = str(ctx.author.id)
+        success = save_vote(user_id, str(match_id), team)
+        print(f"Résultat de l'enregistrement: {'Succès' if success else 'Échec'}")
+    except Exception as e:
+        print(f"Erreur lors du vote: {str(e)}")
+        success = False
     
-    if team.lower() not in [team1.lower(), team2.lower()]:
-        await ctx.send(f"❌ Équipe invalide. Pour le match {match_id}, vous pouvez seulement voter pour :\n- **{team1}**\n- **{team2}**")
-        return
-
-    # Trouver le nom exact de l'équipe (pour garder la casse correcte)
-    if team.lower() == team1.lower():
-        team = team1
-    else:
-        team = team2
-
-    # Avant d'enregistrer le vote
-    print("Tentative d'enregistrement du vote...")
-    
-    # Enregistrement du vote
-    user_id = str(ctx.author.id)
-    success = save_vote(user_id, str(match_id), team)  # Assurez-vous que save_vote retourne True/False
-    
-    print(f"Résultat de l'enregistrement: {'Succès' if success else 'Échec'}")
     print("=== FIN COMMANDE VOTE ===")
 
     if success:
