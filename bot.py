@@ -292,36 +292,47 @@ Pénalité : Chaque match non pronostiqué à temps entraîne une pénalité de 
 async def recap(ctx):
     user_id = str(ctx.author.id)
     
-    if user_id not in votes or not votes[user_id]:
-        await ctx.send(f"❌ {ctx.author.mention}, tu n'as pas encore voté pour aucun match.")
-        return
+    try:
+        # Récupérer tous les votes de l'utilisateur depuis Supabase
+        result = supabase.table("votes").select("*").eq("user_id", user_id).execute()
+        user_votes = result.data
         
-    recap_message = f"**📊 Récapitulatif de vos votes {ctx.author.mention} :**\n\n"
-    
-    # Trier les votes par numéro de match
-    user_votes = votes[user_id]
-    sorted_votes = sorted(user_votes.items(), key=lambda x: int(x[0]))
-    
-    for match_id, voted_team in sorted_votes:
-        match = matches[int(match_id)]
-        team1, team2 = match
-        recap_message += f"**Match {match_id}** : {team1} vs {team2}\n"
-        recap_message += f"➡️ Votre vote : **{voted_team}**\n\n"
-    
-    # Ajouter le nombre total de votes
-    total_votes = len(user_votes)
-    matches_restants = len(matches) - total_votes
-    
-    recap_message += f"**📈 Statistiques :**\n"
-    recap_message += f"- Votes effectués : **{total_votes}/{len(matches)}**\n"
-    
-    if matches_restants > 0:
-        recap_message += f"- Matches restants à voter : **{matches_restants}**\n"
-        recap_message += f"\n💡 Utilisez `!help_vote` pour voir la liste des matches disponibles."
-    else:
-        recap_message += f"\n✅ Vous avez voté pour tous les matches !"
+        if not user_votes:
+            await ctx.send(f"❌ {ctx.author.mention}, tu n'as pas encore voté pour aucun match.")
+            return
+            
+        recap_message = f"**📊 Récapitulatif de vos votes {ctx.author.mention} :**\n\n"
+        
+        # Trier les votes par numéro de match
+        user_votes.sort(key=lambda x: x['match_id'])
+        
+        for vote in user_votes:
+            match_id = vote['match_id']
+            voted_team = vote['choice']
+            
+            if match_id in matches:
+                team1, team2 = matches[match_id]
+                recap_message += f"**Match {match_id}** : {team1} vs {team2}\n"
+                recap_message += f"➡️ Votre vote : **{voted_team}**\n\n"
+        
+        # Ajouter le nombre total de votes
+        total_votes = len(user_votes)
+        matches_restants = len(matches) - total_votes
+        
+        recap_message += f"**📈 Statistiques :**\n"
+        recap_message += f"- Votes effectués : **{total_votes}/{len(matches)}**\n"
+        
+        if matches_restants > 0:
+            recap_message += f"- Matches restants à voter : **{matches_restants}**\n"
+            recap_message += f"\n💡 Utilisez `!help_vote` pour voir la liste des matches disponibles."
+        else:
+            recap_message += f"\n✅ Vous avez voté pour tous les matches !"
 
-    await ctx.send(recap_message)
+        await ctx.send(recap_message)
+        
+    except Exception as e:
+        print(f"Erreur lors du récap: {str(e)}")
+        await ctx.send(f"❌ Une erreur s'est produite lors de la récupération de vos votes.")
 
 # Commande pour voir le récapitulatif des votes
 @bot.command(name="all_votes")
