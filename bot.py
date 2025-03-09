@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 from keep_alive import keep_alive
 from database import *  # Importe toutes les fonctions de database.py
+import asyncio
 
 # Obtenir le chemin absolu du fichier .env
 env_path = Path('.') / '.env'
@@ -150,57 +151,58 @@ async def help_vote(ctx):
 
     await ctx.send(help_message)
 
-# Commande !vote
-@bot.command()
-@commands.max_concurrency(1, per=commands.BucketType.user)  # Limite à une exécution à la fois par utilisateur
-async def vote(ctx, match_id: int = None, *, team: str = None):
-    print(f"=== DÉBUT COMMANDE VOTE ===")
-    print(f"Match ID: {match_id}")
-    print(f"Team: {team}")
-    
-    # Vérifier si les paramètres sont fournis
-    if match_id is None or team is None:
-        await ctx.send("❌ Format incorrect. Utilisez `!vote <numéro du match> <nom de l'équipe>`")
-        return
-    
-    # Vérifier si le match existe
-    if match_id not in matches:
-        await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont de 1 à {len(matches)}.")
-        return
+# Ajouter en haut du fichier
+vote_locks = {}
 
-    # Récupérer les équipes du match
-    team1, team2 = matches[match_id]
-    
-    # Normaliser le nom de l'équipe pour la comparaison
-    team = team.strip()
-    if team.lower() not in [team1.lower(), team2.lower()]:
-        await ctx.send(f"❌ Équipe invalide. Pour le match {match_id}, vous pouvez seulement voter pour :\n- **{team1}**\n- **{team2}**")
+@bot.command()
+async def vote(ctx, match_id: int = None, *, team: str = None):
+    # Vérifier si l'utilisateur a un vote en cours
+    user_id = str(ctx.author.id)
+    if user_id in vote_locks:
+        await ctx.send("⚠️ Veuillez attendre que votre vote précédent soit terminé.")
         return
-    
-    # Utiliser le nom exact de l'équipe (pour garder la casse correcte)
-    team = team1 if team.lower() == team1.lower() else team2
-    
-    try:
-        # Vérifier si l'utilisateur a déjà voté pour ce match
-        existing_votes = supabase.table("votes").select("*").eq("user_id", str(ctx.author.id)).eq("match_id", match_id).execute()
-        if existing_votes.data:
-            # Si un vote existe déjà pour ce match, on le met à jour
-            result = supabase.table("votes").update({
-                "choice": team
-            }).eq("user_id", str(ctx.author.id)).eq("match_id", match_id).execute()
-        else:
-            # Si pas de vote existant, on en crée un nouveau
-            result = supabase.table("votes").insert({
-                "user_id": str(ctx.author.id),
-                "match_id": match_id,
-                "choice": team
-            }).execute()
         
-        await ctx.send(f"✅ {ctx.author.mention}, tu as voté pour **{team}** dans le match **{team1}** vs **{team2}**.")
+    vote_locks[user_id] = True
+    try:
+        print(f"=== DÉBUT COMMANDE VOTE ===")
+        print(f"Match ID: {match_id}")
+        print(f"Team: {team}")
+        
+        # Vérifications habituelles...
+        if match_id is None or team is None:
+            await ctx.send("❌ Format incorrect. Utilisez `!vote <numéro du match> <nom de l'équipe>`")
+            return
+        
+        if match_id not in matches:
+            await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont de 1 à {len(matches)}.")
+            return
+
+        team1, team2 = matches[match_id]
+        team = team.strip()
+        
+        if team.lower() not in [team1.lower(), team2.lower()]:
+            await ctx.send(f"❌ Équipe invalide. Pour le match {match_id}, vous pouvez seulement voter pour :\n- **{team1}**\n- **{team2}**")
+            return
+        
+        team = team1 if team.lower() == team1.lower() else team2
+        
+        # Attendre un court instant pour éviter les doublons
+        await asyncio.sleep(0.5)
+        
+        success = save_vote(user_id, match_id, team)
+        
+        if success:
+            await ctx.send(f"✅ {ctx.author.mention}, tu as voté pour **{team}** dans le match **{team1}** vs **{team2}**.")
+        else:
+            await ctx.send(f"❌ {ctx.author.mention}, il y a eu une erreur lors de l'enregistrement de ton vote.")
             
     except Exception as e:
         print(f"Erreur lors du vote: {str(e)}")
         await ctx.send(f"❌ Une erreur s'est produite lors du vote.")
+    finally:
+        # Toujours libérer le verrou
+        if user_id in vote_locks:
+            del vote_locks[user_id]
     
     print("=== FIN COMMANDE VOTE ===")
 

@@ -30,17 +30,17 @@ def save_vote(user_id, match_id, choice):
         print(f"Match ID: {match_id}")
         print(f"Choice: {choice}")
         
+        # 1. D'abord, supprimer tout vote existant pour cet utilisateur et ce match
+        supabase.table("votes").delete().eq("user_id", user_id).eq("match_id", match_id).execute()
+        
+        # 2. Ensuite, insérer le nouveau vote
         result = supabase.table("votes").insert({
             "user_id": user_id,
             "match_id": match_id,
             "choice": choice
         }).execute()
         
-        if not result.data:
-            print("Pas de données retournées par l'insertion")
-            return False
-            
-        print(f"Vote enregistré avec succès: {result.data}")
+        print(f"Vote enregistré avec succès")
         print("=== FIN SAUVEGARDE VOTE ===")
         return True
         
