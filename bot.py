@@ -77,11 +77,14 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 # Liste des matchs
 matches = {
-    1: ("Arsenal", "Bayern Munich"),
-    2: ("Real Madrid", "Manchester City"),
-    3: ("Atletico Madrid", "Dortmund"),
-    4: ("PSG", "Barcelona"),
-    # ... autres matchs
+    1: ("Club Bruges", "Aston Villa"),
+    2: ("Real Madrid", "Atlético Madrid"),
+    3: ("PSV Eindhoven", "Arsenal"),
+    4: ("Borussia Dortmund", "Lille"),
+    5: ("Feyenoord", "Inter Milan"),
+    6: ("Benfica", "FC Barcelone"),
+    7: ("Bayern Munich", "Bayer Leverkusen"),
+    8: ("Paris Saint-Germain", "Liverpool")
 }
 
 # Événement quand le bot est prêt
