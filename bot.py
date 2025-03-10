@@ -451,87 +451,99 @@ async def voir_votes(ctx, member: discord.Member = None):
 
     user_id = str(member.id)
     
-    if user_id not in votes or not votes[user_id]:
-        await ctx.send(f"❌ {member.mention} n'a pas encore voté pour aucun match.")
-        return
+    try:
+        # Récupérer tous les votes de l'utilisateur depuis Supabase
+        result = supabase.table("votes").select("*").eq("user_id", user_id).execute()
+        user_votes = result.data
         
-    recap_message = f"**📊 Votes de {member.mention} :**\n\n"
-    
-    # Trier les votes par numéro de match
-    user_votes = votes[user_id]
-    sorted_votes = sorted(user_votes.items(), key=lambda x: int(x[0]))
-    
-    for match_id, voted_team in sorted_votes:
-        match = matches[int(match_id)]
-        team1, team2 = match
-        recap_message += f"**Match {match_id}** : {team1} vs {team2}\n"
-        recap_message += f"└─ Vote : **{voted_team}** ⚽\n\n"
-    
-    # Ajouter le nombre total de votes
-    total_votes = len(user_votes)
-    matches_restants = len(matches) - total_votes
-    
-    recap_message += f"**📈 Statistiques :**\n"
-    recap_message += f"└─ Votes effectués : **{total_votes}/{len(matches)}**\n"
-    recap_message += f"└─ Matches restants : **{matches_restants}**\n"
+        if not user_votes:
+            await ctx.send(f"❌ {member.mention} n'a pas encore voté pour aucun match.")
+            return
+            
+        recap_message = f"**📊 Votes de {member.mention} :**\n\n"
+        
+        # Trier les votes par numéro de match
+        user_votes.sort(key=lambda x: x['match_id'])
+        
+        for vote in user_votes:
+            match_id = vote['match_id']
+            voted_team = vote['choice']
+            
+            if match_id in matches:
+                team1, team2 = matches[match_id]
+                recap_message += f"**Match {match_id}** : {team1} vs {team2}\n"
+                recap_message += f"➡️ Vote : **{voted_team}**\n\n"
+        
+        # Ajouter le nombre total de votes
+        total_votes = len(user_votes)
+        matches_restants = len(matches) - total_votes
+        
+        recap_message += f"**📈 Statistiques :**\n"
+        recap_message += f"└─ Votes effectués : **{total_votes}/{len(matches)}**\n"
+        recap_message += f"└─ Matches restants : **{matches_restants}**\n"
 
-    if matches_restants > 0:
-        recap_message += f"\n💡 Il reste encore {matches_restants} match(es) à voter !"
-    else:
-        recap_message += f"\n✅ A voté pour tous les matches !"
+        if matches_restants > 0:
+            recap_message += f"\n💡 Il reste encore {matches_restants} match(es) à voter !"
+        else:
+            recap_message += f"\n✅ A voté pour tous les matches !"
 
-    await ctx.send(recap_message)
+        await ctx.send(recap_message)
+        
+    except Exception as e:
+        print(f"Erreur lors de la récupération des votes: {str(e)}")
+        await ctx.send(f"❌ Une erreur s'est produite lors de la récupération des votes.")
 
 # Commande pour modifier un vote existant
 @bot.command(name="modifier_vote")
 async def modifier_vote(ctx, match_id: int = None, *, team: str = None):
     user_id = str(ctx.author.id)
     
-    # Vérifier si les paramètres sont fournis
-    if match_id is None or team is None:
-        await ctx.send("❌ Format incorrect. Utilisez `!modifier_vote <numéro du match> <nom de l'équipe>`")
-        return
+    try:
+        # Vérifier si les paramètres sont fournis
+        if match_id is None or team is None:
+            await ctx.send("❌ Format incorrect. Utilisez `!modifier_vote <numéro du match> <nom de l'équipe>`")
+            return
 
-    # Vérifier si l'utilisateur a déjà voté pour ce match
-    if user_id not in votes or str(match_id) not in votes[user_id]:
-        await ctx.send(f"❌ Vous n'avez pas encore voté pour le match {match_id}. Utilisez `!vote` pour voter.")
-        return
+        # Vérifier si le match existe
+        if match_id not in matches:
+            await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont de 1 à {len(matches)}.")
+            return
 
-    # Vérifier si le match existe
-    if match_id < 1 or match_id > len(matches):
-        await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont de 1 à {len(matches)}.")
-        return
+        # Vérifier si l'utilisateur a déjà voté pour ce match
+        result = supabase.table("votes").select("*").eq("user_id", user_id).eq("match_id", match_id).execute()
+        
+        if not result.data:
+            await ctx.send(f"❌ Vous n'avez pas encore voté pour le match {match_id}. Utilisez `!vote` pour voter.")
+            return
 
-    match = matches[match_id]
-    team1, team2 = match
-    ancien_vote = votes[user_id][str(match_id)]
+        team1, team2 = matches[match_id]
+        ancien_vote = result.data[0]["choice"]
 
-    # Normaliser le nom de l'équipe pour la comparaison
-    team = team.strip()
-    
-    if team.lower() not in [team1.lower(), team2.lower()]:
-        await ctx.send(f"❌ Équipe invalide. Pour le match {match_id}, vous pouvez seulement voter pour :\n- **{team1}**\n- **{team2}**")
-        return
+        # Normaliser le nom de l'équipe pour la comparaison
+        team = team.strip()
+        if team.lower() not in [team1.lower(), team2.lower()]:
+            await ctx.send(f"❌ Équipe invalide. Pour le match {match_id}, vous pouvez seulement voter pour :\n- **{team1}**\n- **{team2}**")
+            return
 
-    # Si l'utilisateur vote pour la même équipe
-    if team.lower() == ancien_vote.lower():
-        await ctx.send(f"ℹ️ Vous avez déjà voté pour **{ancien_vote}** dans ce match.")
-        return
+        # Si l'utilisateur vote pour la même équipe
+        if team.lower() == ancien_vote.lower():
+            await ctx.send(f"ℹ️ Vous avez déjà voté pour **{ancien_vote}** dans ce match.")
+            return
 
-    # Trouver le nom exact de l'équipe (pour garder la casse correcte)
-    if team.lower() == team1.lower():
-        team = team1
-    else:
-        team = team2
+        # Trouver le nom exact de l'équipe (pour garder la casse correcte)
+        team = team1 if team.lower() == team1.lower() else team2
 
-    # Modifier le vote
-    votes[user_id][str(match_id)] = team
-    sauvegarder_votes()
+        # Modifier le vote dans Supabase
+        supabase.table("votes").update({"choice": team}).eq("user_id", user_id).eq("match_id", match_id).execute()
 
-    await ctx.send(f"✅ {ctx.author.mention}, votre vote a été modifié !\n"
-                  f"**Match {match_id}** : {team1} vs {team2}\n"
-                  f"└─ Ancien vote : **{ancien_vote}**\n"
-                  f"└─ Nouveau vote : **{team}** 🔄")
+        await ctx.send(f"✅ {ctx.author.mention}, votre vote a été modifié !\n"
+                    f"**Match {match_id}** : {team1} vs {team2}\n"
+                    f"└─ Ancien vote : **{ancien_vote}**\n"
+                    f"└─ Nouveau vote : **{team}** 🔄")
+
+    except Exception as e:
+        print(f"Erreur lors de la modification du vote: {str(e)}")
+        await ctx.send(f"❌ Une erreur s'est produite lors de la modification du vote.")
 
 # Commande pour attribuer des points
 @bot.command(name="point")
