@@ -212,21 +212,28 @@ async def vote(ctx, match_id: int = None, *, team: str = None):
 @bot.command(name="supprimer_vote")
 async def supprimer_vote(ctx, match_id: int):
     user_id = str(ctx.author.id)
-
-    if user_id not in votes or str(match_id) not in votes[user_id]:
-        await ctx.send(f"❌ {ctx.author.mention}, tu n'as pas encore voté pour ce match `{match_id}`.")
-        return
-
-    # Suppression du vote
-    del votes[user_id][str(match_id)]
-
-    # Si l'utilisateur n'a plus de votes, on le supprime aussi du fichier
-    if not votes[user_id]:
-        del votes[user_id]
-
-    sauvegarder_votes()  # Sauvegarde automatique après suppression
-
-    await ctx.send(f"✅ {ctx.author.mention}, ton vote pour le match `{match_id}` a été supprimé !")
+    
+    try:
+        # Vérifier si le vote existe
+        result = supabase.table("votes").select("*").eq("user_id", user_id).eq("match_id", match_id).execute()
+        
+        if not result.data:
+            await ctx.send(f"❌ {ctx.author.mention}, tu n'as pas encore voté pour le match {match_id}.")
+            return
+        
+        # Suppression du vote
+        supabase.table("votes").delete().eq("user_id", user_id).eq("match_id", match_id).execute()
+        
+        # Récupérer les équipes du match pour le message
+        if match_id in matches:
+            team1, team2 = matches[match_id]
+            await ctx.send(f"✅ {ctx.author.mention}, ton vote pour le match {match_id} ({team1} vs {team2}) a été supprimé !")
+        else:
+            await ctx.send(f"✅ {ctx.author.mention}, ton vote pour le match {match_id} a été supprimé !")
+            
+    except Exception as e:
+        print(f"Erreur lors de la suppression du vote: {str(e)}")
+        await ctx.send(f"❌ Une erreur s'est produite lors de la suppression du vote.")
 
 # Commande !programme (Annonce du quiz)
 
@@ -337,104 +344,103 @@ async def recap(ctx):
 # Commande pour voir le récapitulatif des votes
 @bot.command(name="all_votes")
 async def all_votes(ctx):
-    if not votes:
-        await ctx.send("❌ Aucun vote n'a encore été enregistré.")
-        return
-
-    # Créer un dictionnaire pour organiser les votes par match
-    votes_par_match = {}
-    for match_id in matches.keys():
-        votes_par_match[str(match_id)] = {"votes": {}}
-
-    # Récupérer tous les utilisateurs une seule fois
-    users_cache = {}
-    for user_id in votes.keys():
-        try:
-            user = await bot.fetch_user(int(user_id))
-            users_cache[user_id] = user.name
-        except:
-            users_cache[user_id] = f"Utilisateur_{user_id}"
-
-    # Compter les votes pour chaque match
-    for user_id, user_votes in votes.items():
-        user_name = users_cache[user_id]
-        for match_id, team in user_votes.items():
+    try:
+        # Récupérer tous les votes depuis Supabase
+        result = supabase.table("votes").select("*").execute()
+        all_votes = result.data
+        
+        if not all_votes:
+            await ctx.send("❌ Aucun vote n'a encore été enregistré.")
+            return
+        
+        # Créer un dictionnaire pour organiser les votes par match
+        votes_par_match = {}
+        for match_id in matches.keys():
+            votes_par_match[match_id] = {"votes": {}}
+        
+        # Récupérer tous les utilisateurs une seule fois
+        users_cache = {}
+        
+        # Organiser les votes par match
+        for vote in all_votes:
+            user_id = vote["user_id"]
+            match_id = vote["match_id"]
+            team = vote["choice"]
+            
+            # Récupérer le nom d'utilisateur si pas encore en cache
+            if user_id not in users_cache:
+                try:
+                    user = await bot.fetch_user(int(user_id))
+                    users_cache[user_id] = user.name
+                except:
+                    users_cache[user_id] = f"Utilisateur_{user_id}"
+            
             if team not in votes_par_match[match_id]["votes"]:
                 votes_par_match[match_id]["votes"][team] = []
-            votes_par_match[match_id]["votes"][team].append(user_name)
-
-    # Créer le message de récapitulatif
-    message = "**🌟 RÉCAPITULATIF GLOBAL DES VOTES 🌟**\n\n"
-
-    for match_id in sorted(votes_par_match.keys(), key=int):
-        match = matches[int(match_id)]
-        team1, team2 = match
-        message += f"**📌 Match {match_id}** : {team1} vs {team2}\n"
-        message += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-
-        match_votes = votes_par_match[match_id]["votes"]
-        if not match_votes:
-            message += "❌ Aucun vote pour ce match\n"
-        else:
-            total_votes = sum(len(voters) for voters in match_votes.values())
+            votes_par_match[match_id]["votes"][team].append(users_cache[user_id])
+        
+        # Créer le message de récapitulatif
+        message = "**🌟 RÉCAPITULATIF GLOBAL DES VOTES 🌟**\n\n"
+        
+        for match_id in sorted(votes_par_match.keys()):
+            team1, team2 = matches[match_id]
+            message += f"**📌 Match {match_id}** : {team1} vs {team2}\n"
+            message += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
             
-            # Afficher les votes pour chaque équipe
-            for team in [team1, team2]:
-                voters = match_votes.get(team, [])
-                percentage = (len(voters) / total_votes * 100) if total_votes > 0 else 0
-                
-                # Créer une barre de progression
-                progress_bar = "🟦" * int(percentage/10) + "⬜" * (10 - int(percentage/10))
-                
-                message += f"\n**{team}**\n"
-                message += f"└─ Votes : **{len(voters)}** ({percentage:.1f}%)\n"
-                message += f"└─ Progression : {progress_bar}\n"
-                if voters:
-                    message += f"└─ 👥 Votants : {', '.join(sorted(voters))}\n"
-
-        message += "\n"
-
-    # Ajouter des statistiques globales détaillées
-    total_users = len(votes)
-    total_possible_votes = len(matches)
-    total_votes_cast = sum(len(user_votes) for user_votes in votes.values())
-    
-    message += "**📊 STATISTIQUES GLOBALES 📊**\n"
-    message += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-    message += f"👥 **Participation**\n"
-    message += f"└─ Nombre de participants : **{total_users}**\n"
-    message += f"└─ Total des votes : **{total_votes_cast}/{total_users * total_possible_votes}**\n"
-    message += f"└─ Moyenne par utilisateur : **{total_votes_cast/total_users:.1f}/{total_possible_votes}**\n\n"
-
-    # Ajouter le classement des participants
-    message += "🏆 **Classement des participants**\n"
-    
-    # Utiliser le cache des utilisateurs pour le classement
-    user_rankings = [(users_cache[user_id], len(user_votes)) 
-                    for user_id, user_votes in votes.items()]
-    user_rankings.sort(key=lambda x: x[1], reverse=True)
-    
-    for i, (username, vote_count) in enumerate(user_rankings, 1):
-        medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else "👤"
-        message += f"{medal} **{username}** : {vote_count} vote(s)\n"
-
-    try:
-        await ctx.send(message)
-    except discord.HTTPException:
-        # Si le message est trop long, on le divise en plusieurs parties
-        messages = []
-        current_message = ""
-        for line in message.split('\n'):
-            if len(current_message) + len(line) + 1 > 1900:  # Discord limite à 2000 caractères
-                messages.append(current_message)
-                current_message = line
+            match_votes = votes_par_match[match_id]["votes"]
+            if not match_votes:
+                message += "❌ Aucun vote pour ce match\n"
             else:
-                current_message += line + '\n'
-        if current_message:
-            messages.append(current_message)
+                total_votes = sum(len(voters) for voters in match_votes.values())
+                
+                # Afficher les votes pour chaque équipe
+                for team in [team1, team2]:
+                    voters = match_votes.get(team, [])
+                    percentage = (len(voters) / total_votes * 100) if total_votes > 0 else 0
+                    
+                    # Créer une barre de progression
+                    progress_bar = "🟦" * int(percentage/10) + "⬜" * (10 - int(percentage/10))
+                    
+                    message += f"\n**{team}**\n"
+                    message += f"└─ Votes : **{len(voters)}** ({percentage:.1f}%)\n"
+                    message += f"└─ Progression : {progress_bar}\n"
+                    if voters:
+                        message += f"└─ 👥 Votants : {', '.join(sorted(voters))}\n"
             
-        for msg in messages:
-            await ctx.send(msg)
+            message += "\n"
+        
+        # Ajouter des statistiques globales
+        total_users = len({vote["user_id"] for vote in all_votes})
+        total_votes = len(all_votes)
+        
+        message += "**📊 STATISTIQUES GLOBALES 📊**\n"
+        message += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        message += f"👥 **Participation**\n"
+        message += f"└─ Nombre de participants : **{total_users}**\n"
+        message += f"└─ Total des votes : **{total_votes}**\n"
+        message += f"└─ Moyenne par utilisateur : **{total_votes/total_users:.1f}**\n\n"
+        
+        try:
+            await ctx.send(message)
+        except discord.HTTPException:
+            # Si le message est trop long, on le divise
+            messages = []
+            current_message = ""
+            for line in message.split('\n'):
+                if len(current_message) + len(line) + 1 > 1900:
+                    messages.append(current_message)
+                    current_message = line
+                else:
+                    current_message += line + '\n'
+            if current_message:
+                messages.append(current_message)
+            
+            for msg in messages:
+                await ctx.send(msg)
+                
+    except Exception as e:
+        print(f"Erreur lors de l'affichage des votes: {str(e)}")
+        await ctx.send(f"❌ Une erreur s'est produite lors de la récupération des votes.")
 
 # Commande pour voir les votes d'un utilisateur spécifique
 @bot.command(name="voir_votes")
