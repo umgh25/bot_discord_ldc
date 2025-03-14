@@ -65,21 +65,16 @@ def get_votes(match_id):
 def add_points(user_id: str, match_id: int, points: int) -> bool:
     try:
         print(f"=== DÉBUT AJOUT POINTS DANS LA BDD ===")
+        print(f"Données reçues: user_id={user_id}, match_id={match_id}, points={points}")
         
-        # Supprimer d'abord tout enregistrement existant
-        supabase.table("points") \
-            .delete() \
-            .eq("user_id", str(user_id)) \
-            .eq("match_id", int(match_id)) \
-            .execute()
-        
-        # Puis insérer le nouveau
+        # Utilisation de upsert (insert ou update si existe déjà)
         result = supabase.table("points") \
-            .insert({
+            .upsert({
                 "user_id": str(user_id),
                 "match_id": int(match_id),
                 "points": int(points)
-            }).execute()
+            }) \
+            .execute()
         
         print(f"Résultat de l'opération: {result.data if hasattr(result, 'data') else result}")
         print("=== FIN AJOUT POINTS DANS LA BDD ===")
