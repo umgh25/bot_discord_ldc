@@ -69,23 +69,15 @@ def add_points(user_id: str, match_id: int, points: int) -> bool:
         print(f"Match ID: {match_id}")
         print(f"Points: {points}")
         
-        # Vérifier si un score existe déjà pour ce match et cet utilisateur
-        result = supabase.table("points").select("*").eq("user_id", user_id).eq("match_id", match_id).execute()
+        # Créer un nouveau score directement (sans vérifier l'existence)
+        result = supabase.table("points").insert({
+            "user_id": user_id,  # Supabase convertira automatiquement en UUID
+            "match_id": match_id,
+            "points": points,
+            "created_at": "now()"
+        }).execute()
         
-        if result.data:
-            # Mise à jour des points existants
-            supabase.table("points").update({
-                "points": points
-            }).eq("user_id", user_id).eq("match_id", match_id).execute()
-        else:
-            # Création d'un nouveau score
-            supabase.table("points").insert({
-                "user_id": user_id,
-                "match_id": match_id,
-                "points": points
-            }).execute()
-        
-        print("Points ajoutés avec succès")
+        print(f"Résultat de l'insertion : {result.data if hasattr(result, 'data') else result}")
         print("=== FIN AJOUT POINTS ===")
         return True
         
