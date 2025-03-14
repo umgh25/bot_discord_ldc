@@ -620,44 +620,49 @@ async def classement(ctx):
 @bot.command(name="reset_points")
 @commands.has_permissions(administrator=True)
 async def reset_points(ctx, member: discord.Member = None):
-    global points
-    
-    # Si aucun membre n'est spécifié, demander confirmation pour réinitialiser tous les points
-    if member is None:
-        confirmation_message = await ctx.send("⚠️ Voulez-vous vraiment réinitialiser **TOUS** les points ?\n"
-                                            "Cette action est irréversible !\n"
-                                            "✅ = Confirmer\n"
-                                            "❌ = Annuler")
-        
-        # Ajouter les réactions pour la confirmation
-        await confirmation_message.add_reaction("✅")
-        await confirmation_message.add_reaction("❌")
-        
-        def check(reaction, user):
-            return user == ctx.author and str(reaction.emoji) in ["✅", "❌"]
-        
-        try:
-            reaction, user = await bot.wait_for('reaction_add', timeout=30.0, check=check)
+    try:
+        if member is None:
+            # Demander confirmation pour réinitialiser tous les points
+            confirmation_message = await ctx.send("⚠️ Voulez-vous vraiment réinitialiser **TOUS** les points ?\n"
+                                               "Cette action est irréversible !\n"
+                                               "✅ = Confirmer\n"
+                                               "❌ = Annuler")
             
-            if str(reaction.emoji) == "✅":
-                points = {}  # Réinitialiser tous les points
-                sauvegarder_points()
-                await ctx.send("✅ Tous les points ont été réinitialisés !")
-            else:
-                await ctx.send("❌ Réinitialisation annulée.")
+            # Ajouter les réactions pour la confirmation
+            await confirmation_message.add_reaction("✅")
+            await confirmation_message.add_reaction("❌")
+            
+            def check(reaction, user):
+                return user == ctx.author and str(reaction.emoji) in ["✅", "❌"]
+            
+            try:
+                reaction, user = await bot.wait_for('reaction_add', timeout=30.0, check=check)
                 
-        except TimeoutError:
-            await ctx.send("❌ Temps écoulé. Réinitialisation annulée.")
-            
-    else:
-        # Réinitialiser les points d'un utilisateur spécifique
-        user_id = str(member.id)
-        if user_id in points:
-            del points[user_id]
-            sauvegarder_points()
-            await ctx.send(f"✅ Les points de {member.mention} ont été réinitialisés !")
+                if str(reaction.emoji) == "✅":
+                    success = reset_points()  # Réinitialiser tous les points
+                    if success:
+                        await ctx.send("✅ Tous les points ont été réinitialisés !")
+                    else:
+                        await ctx.send("❌ Une erreur s'est produite lors de la réinitialisation des points.")
+                else:
+                    await ctx.send("❌ Réinitialisation annulée.")
+                    
+            except TimeoutError:
+                await ctx.send("❌ Temps écoulé. Réinitialisation annulée.")
+                
         else:
-            await ctx.send(f"ℹ️ {member.mention} n'avait pas de points enregistrés.")
+            # Réinitialiser les points d'un utilisateur spécifique
+            user_id = str(member.id)
+            success = reset_points(user_id)
+            
+            if success:
+                await ctx.send(f"✅ Les points de {member.mention} ont été réinitialisés !")
+            else:
+                await ctx.send(f"❌ Une erreur s'est produite lors de la réinitialisation des points de {member.mention}.")
+                
+    except Exception as e:
+        print(f"Erreur dans la commande reset_points: {str(e)}")
+        await ctx.send("❌ Une erreur s'est produite lors de la réinitialisation des points.")
 
 @reset_points.error
 async def reset_points_error(ctx, error):

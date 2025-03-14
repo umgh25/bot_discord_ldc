@@ -128,5 +128,30 @@ def get_channel():
         print(f"Erreur lors de la récupération du canal: {e}")
         return None
 
+# Fonction pour réinitialiser les points
+def reset_points(user_id: str = None) -> bool:
+    try:
+        print(f"=== DÉBUT RESET POINTS ===")
+        
+        if user_id:
+            print(f"Réinitialisation des points pour l'utilisateur: {user_id}")
+            # Supprimer tous les points d'un utilisateur spécifique
+            result = supabase.table("points").delete().eq("user_id", user_id).execute()
+        else:
+            print("Réinitialisation de tous les points")
+            # Supprimer tous les points de tous les utilisateurs
+            result = supabase.table("points").delete().neq("user_id", "dummy").execute()
+        
+        print(f"Résultat de la réinitialisation: {result.data if hasattr(result, 'data') else result}")
+        print("=== FIN RESET POINTS ===")
+        return True
+        
+    except Exception as e:
+        print(f"!!! ERREUR DANS RESET_POINTS !!!")
+        print(f"Type d'erreur: {type(e)}")
+        print(f"Message d'erreur: {str(e)}")
+        print("=== FIN ERREUR ===")
+        return False
+
 # Vérification de la connexion au démarrage
 create_db()
