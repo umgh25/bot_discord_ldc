@@ -70,11 +70,12 @@ def add_points(user_id: str, match_id: int, points: int) -> bool:
         print(f"- Match ID: {match_id}")
         print(f"- Points: {points}")
         
-        # Préparation des données
+        # Préparation des données avec created_at
         data = {
             "user_id": str(user_id),
             "match_id": int(match_id),
-            "points": int(points)
+            "points": int(points),
+            "created_at": "now()"  # Ajout du timestamp actuel
         }
         
         print(f"Données préparées pour l'insertion: {data}")
