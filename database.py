@@ -81,7 +81,10 @@ def add_points(user_id: str, match_id: int, points: int) -> bool:
             # Mise à jour si existe déjà
             print("Enregistrement existant trouvé, mise à jour...")
             result = supabase.table("points") \
-                .update({"points": int(points)}) \
+                .update({
+                    "points": int(points),
+                    "created_at": "NOW()"
+                }) \
                 .eq("user_id", str(user_id)) \
                 .eq("match_id", int(match_id)) \
                 .execute()
@@ -92,7 +95,8 @@ def add_points(user_id: str, match_id: int, points: int) -> bool:
                 .insert({
                     "user_id": str(user_id),
                     "match_id": int(match_id),
-                    "points": int(points)
+                    "points": int(points),
+                    "created_at": "NOW()"
                 }).execute()
         
         print(f"Résultat de l'opération: {result.data if hasattr(result, 'data') else result}")
