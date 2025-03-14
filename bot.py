@@ -547,41 +547,44 @@ async def modifier_vote(ctx, match_id: int = None, *, team: str = None):
 
 # Commande pour attribuer des points
 @bot.command(name="point")
-async def point(ctx, user: discord.Member, match_id: int, points: int):
-    # Ignorer les messages du bot lui-même
-    if ctx.author.bot:
-        return
-        
+@commands.has_permissions(administrator=True)
+async def point(ctx, member: discord.Member = None, match_id: int = None, point_value: int = None):
     try:
-        print(f"=== DÉBUT COMMANDE POINT ===")
-        print(f"Message ID: {ctx.message.id}")
-        print(f"Attribution de points demandée:")
-        print(f"- Pour: {user.name} (ID: {user.id})")
-        print(f"- Match: {match_id}")
-        print(f"- Points: {points}")
+        if None in (member, match_id, point_value):
+            await ctx.send("❌ Format incorrect. Utilisez `!point @utilisateur 1 1`")
+            return
 
-        # Vérifier si le match existe
         if match_id not in matches:
-            await ctx.send(f"❌ Le match {match_id} n'existe pas.")
+            await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont de 1 à {len(matches)}.")
             return
 
-        # Ajouter les points
-        success = add_points(str(user.id), match_id, points)
+        if point_value not in [-1, 1]:
+            await ctx.send("❌ Les points doivent être 1 (victoire) ou -1 (absence)")
+            return
+
+        user_id = str(member.id)
+        success = add_points(user_id, match_id, point_value)
         
-        if success:
-            team1, team2 = matches[match_id]
-            await ctx.message.add_reaction('✅')  # Ajouter une réaction au lieu d'envoyer un message
-            return  # Sortir immédiatement après la réaction
-        else:
-            await ctx.message.add_reaction('❌')
+        if not success:
+            await ctx.send("❌ Une erreur s'est produite lors de l'attribution des points.")
             return
-
+            
+        team1, team2 = matches[match_id]
+        
+        # Construction du message de confirmation
+        if point_value > 0:
+            message = f"✅ {member.mention} a gagné **{point_value}** point pour le match {match_id} !\n"
+        else:
+            message = f"❌ {member.mention} a perdu **{abs(point_value)}** point pour le match {match_id} !\n"
+            
+        message += f"└─ Match : **{team1}** vs **{team2}**\n"
+        message += f"└─ Points : **{point_value}**"
+        
+        await ctx.send(message)
+        
     except Exception as e:
-        print(f"!!! ERREUR DANS LA COMMANDE POINT !!!")
-        print(f"Type d'erreur: {type(e)}")
-        print(f"Message d'erreur: {str(e)}")
-        await ctx.message.add_reaction('❌')
-        return
+        print(f"Erreur dans la commande point: {str(e)}")
+        await ctx.send("❌ Une erreur s'est produite lors de l'attribution des points.")
 
 # Commande pour voir le classement des points
 @bot.command(name="classement")
