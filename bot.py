@@ -7,6 +7,7 @@ from pathlib import Path
 from keep_alive import keep_alive
 from database import *  # Importe toutes les fonctions de database.py
 import asyncio
+from asyncio import Lock
 
 # Obtenir le chemin absolu du fichier .env
 env_path = Path('.') / '.env'
@@ -153,6 +154,7 @@ async def help_vote(ctx):
 
 # Ajouter en haut du fichier
 vote_locks = {}
+point_lock = Lock()
 
 @bot.command()
 async def vote(ctx, match_id: int = None, *, team: str = None):
@@ -549,40 +551,38 @@ async def modifier_vote(ctx, match_id: int = None, *, team: str = None):
 @bot.command(name="point")
 @commands.has_permissions(administrator=True)
 async def point(ctx, user: discord.Member, match_id: int, points: int):
-    try:
-        print(f"=== DÉBUT COMMANDE POINT ===")
-        print(f"Attribution de points demandée:")
-        print(f"- Pour: {user.name} (ID: {user.id})")
-        print(f"- Match: {match_id}")
-        print(f"- Points: {points}")
+    async with point_lock:  # Utilisation du verrou
+        try:
+            print(f"=== DÉBUT COMMANDE POINT ===")
+            print(f"Attribution de points demandée:")
+            print(f"- Pour: {user.name} (ID: {user.id})")
+            print(f"- Match: {match_id}")
+            print(f"- Points: {points}")
 
-        # Vérifier si le match existe
-        if match_id not in matches:
-            await ctx.send(f"❌ Le match {match_id} n'existe pas.")
-            return
+            # Vérifier si le match existe
+            if match_id not in matches:
+                await ctx.send(f"❌ Le match {match_id} n'existe pas.")
+                return
 
-        # Ajouter les points
-        success = add_points(str(user.id), match_id, points)
-        
-        if success:
-            team1, team2 = matches[match_id]
-            message = (
-                f"✅ {user.mention} a gagné {points} point{'s' if points > 1 else ''} pour le match {match_id} !\n"
-                f"└─ Match : {team1} vs {team2}\n"
-                f"└─ Points : {points}"
-            )
-            await ctx.send(message)
-            return  # Ajout d'un return explicite après l'envoi du message
-        else:
+            # Ajouter les points
+            success = add_points(str(user.id), match_id, points)
+            
+            if success:
+                team1, team2 = matches[match_id]
+                message = (
+                    f"✅ {user.mention} a gagné {points} point{'s' if points > 1 else ''} pour le match {match_id} !\n"
+                    f"└─ Match : {team1} vs {team2}\n"
+                    f"└─ Points : {points}"
+                )
+                await ctx.send(message)
+            else:
+                await ctx.send("❌ Une erreur s'est produite lors de l'attribution des points.")
+
+        except Exception as e:
+            print(f"!!! ERREUR DANS LA COMMANDE POINT !!!")
+            print(f"Type d'erreur: {type(e)}")
+            print(f"Message d'erreur: {str(e)}")
             await ctx.send("❌ Une erreur s'est produite lors de l'attribution des points.")
-            return  # Ajout d'un return explicite en cas d'erreur
-
-    except Exception as e:
-        print(f"!!! ERREUR DANS LA COMMANDE POINT !!!")
-        print(f"Type d'erreur: {type(e)}")
-        print(f"Message d'erreur: {str(e)}")
-        await ctx.send("❌ Une erreur s'est produite lors de l'attribution des points.")
-        return
 
 # Commande pour voir le classement des points
 @bot.command(name="classement")
