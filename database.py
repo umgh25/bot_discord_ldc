@@ -69,26 +69,32 @@ def add_points(user_id: str, match_id: int, points: int) -> bool:
         print(f"Match ID: {match_id}")
         print(f"Points: {points}")
         
-        # Créer les données à insérer
-        data = {
-            "user_id": str(user_id),  # Conversion explicite en string
-            "match_id": int(match_id),  # Conversion explicite en int
-            "points": int(points)  # Conversion explicite en int
-        }
-        print(f"Données à insérer: {data}")
+        # Convertir le match_id et points en int2 (smallint)
+        match_id = int(match_id)
+        points = int(points)
         
-        # Tentative d'insertion
+        # Créer l'enregistrement avec tous les champs requis
+        data = {
+            "user_id": user_id,
+            "match_id": match_id,
+            "points": points,
+            "created_at": "now()"  # Timestamp automatique
+        }
+        
+        print("Tentative d'insertion avec les données:", data)
+        
+        # Insertion dans la table points
         result = supabase.table("points").insert(data).execute()
         
-        print(f"Résultat de l'insertion : {result.data if hasattr(result, 'data') else result}")
+        print("Résultat de l'insertion:", result.data if hasattr(result, 'data') else result)
         print("=== FIN AJOUT POINTS ===")
         return True
         
     except Exception as e:
         print(f"!!! ERREUR AJOUT POINTS !!!")
         print(f"Type d'erreur: {type(e)}")
-        print(f"Message d'erreur complet: {str(e)}")
-        print(f"Données qui ont causé l'erreur: user_id={user_id}, match_id={match_id}, points={points}")
+        print(f"Message d'erreur: {str(e)}")
+        print(f"Données qui ont causé l'erreur: {data}")
         print("=== FIN ERREUR ===")
         return False
 

@@ -550,58 +550,37 @@ async def modifier_vote(ctx, match_id: int = None, *, team: str = None):
 @commands.has_permissions(administrator=True)
 async def point(ctx, member: discord.Member = None, match_id: int = None, point_value: int = None):
     try:
-        # Vérifier si tous les paramètres sont fournis
         if None in (member, match_id, point_value):
-            await ctx.send("❌ Format incorrect. Utilisez `!point @utilisateur 1 1` (premier chiffre = numéro du match, deuxième chiffre = points)")
+            await ctx.send("❌ Format incorrect. Utilisez `!point @utilisateur 1 1`")
             return
 
-        # Vérifier si le match existe
         if match_id not in matches:
             await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont de 1 à {len(matches)}.")
             return
 
-        # Vérifier si les points sont valides (-1 ou 1)
         if point_value not in [-1, 1]:
             await ctx.send("❌ Les points doivent être 1 (victoire) ou -1 (absence)")
             return
 
         user_id = str(member.id)
-        print(f"Tentative d'ajout de points pour user_id: {user_id}")
+        print(f"Attribution de points - User ID: {user_id}, Match: {match_id}, Points: {point_value}")
         
-        # Récupérer le vote de l'utilisateur pour ce match
-        vote_result = supabase.table("votes").select("choice").eq("user_id", user_id).eq("match_id", match_id).execute()
-        user_vote = "N'a pas voté"
-        if vote_result.data:
-            user_vote = vote_result.data[0]["choice"]
-        
-        # Ajouter les points
         success = add_points(user_id, match_id, point_value)
-        
         if not success:
-            await ctx.send(f"❌ Une erreur s'est produite lors de l'attribution des points.")
+            await ctx.send("❌ Une erreur s'est produite lors de l'attribution des points.")
             return
-        
-        # Récupérer les informations du match
+            
         team1, team2 = matches[match_id]
+        emoji = "✅" if point_value > 0 else "❌"
+        message = f"a gagné **{point_value}** point" if point_value > 0 else f"a perdu **{abs(point_value)}** point"
         
-        # Créer le message de confirmation
-        if point_value > 0:
-            emoji = "✅"
-            message = f"a gagné **{point_value}** point"
-        else:
-            emoji = "❌"
-            message = f"a perdu **{abs(point_value)}** point"
-        
-        confirmation = f"{emoji} {member.mention} {message} pour le match {match_id} !\n"
-        confirmation += f"└─ Match : **{team1}** vs **{team2}**\n"
-        confirmation += f"└─ Vote : **{user_vote}**\n"
-        confirmation += f"└─ Points : **{point_value}**"
-        
-        await ctx.send(confirmation)
+        await ctx.send(f"{emoji} {member.mention} {message} pour le match {match_id} !\n"
+                      f"└─ Match : **{team1}** vs **{team2}**\n"
+                      f"└─ Points : **{point_value}**")
         
     except Exception as e:
         print(f"Erreur dans la commande point: {str(e)}")
-        await ctx.send(f"❌ Une erreur s'est produite lors de l'attribution des points.")
+        await ctx.send("❌ Une erreur s'est produite lors de l'attribution des points.")
 
 @point.error
 async def point_error(ctx, error):
