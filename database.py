@@ -129,29 +129,47 @@ def get_channel():
         return None
 
 # Fonction pour réinitialiser les points
-def reset_points(user_id: str = None) -> bool:
+def reset_points(user_id: str = None) -> tuple[bool, int]:
     try:
         print(f"=== DÉBUT RESET POINTS ===")
         
         if user_id:
             print(f"Réinitialisation des points pour l'utilisateur: {user_id}")
-            # Supprimer tous les points d'un utilisateur spécifique
+            # D'abord, compter combien de points vont être supprimés
+            count_result = supabase.table("points").select("*", count="exact").eq("user_id", user_id).execute()
+            points_count = len(count_result.data) if count_result.data else 0
+            
+            if points_count == 0:
+                print("Aucun point trouvé pour cet utilisateur")
+                return True, 0
+                
+            # Supprimer les points
             result = supabase.table("points").delete().eq("user_id", user_id).execute()
+            print(f"Nombre de points supprimés: {points_count}")
+            
         else:
             print("Réinitialisation de tous les points")
-            # Supprimer tous les points de tous les utilisateurs
+            # Compter d'abord le total des points
+            count_result = supabase.table("points").select("*", count="exact").execute()
+            points_count = len(count_result.data) if count_result.data else 0
+            
+            if points_count == 0:
+                print("Aucun point trouvé dans la base de données")
+                return True, 0
+                
+            # Supprimer tous les points
             result = supabase.table("points").delete().neq("user_id", "dummy").execute()
+            print(f"Nombre total de points supprimés: {points_count}")
         
-        print(f"Résultat de la réinitialisation: {result.data if hasattr(result, 'data') else result}")
         print("=== FIN RESET POINTS ===")
-        return True
+        return True, points_count
         
     except Exception as e:
         print(f"!!! ERREUR DANS RESET_POINTS !!!")
         print(f"Type d'erreur: {type(e)}")
         print(f"Message d'erreur: {str(e)}")
         print("=== FIN ERREUR ===")
-        return False
+        return False, 0
 
 # Vérification de la connexion au démarrage
 create_db()

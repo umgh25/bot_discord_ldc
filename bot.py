@@ -619,7 +619,7 @@ async def classement(ctx):
 # Commande pour réinitialiser les points
 @bot.command(name="reset_points")
 @commands.has_permissions(administrator=True)
-async def reset_points(ctx, member: discord.Member = None):
+async def reset_points_cmd(ctx, member: discord.Member = None):
     try:
         if member is None:
             # Demander confirmation pour réinitialiser tous les points
@@ -628,7 +628,6 @@ async def reset_points(ctx, member: discord.Member = None):
                                                "✅ = Confirmer\n"
                                                "❌ = Annuler")
             
-            # Ajouter les réactions pour la confirmation
             await confirmation_message.add_reaction("✅")
             await confirmation_message.add_reaction("❌")
             
@@ -639,9 +638,12 @@ async def reset_points(ctx, member: discord.Member = None):
                 reaction, user = await bot.wait_for('reaction_add', timeout=30.0, check=check)
                 
                 if str(reaction.emoji) == "✅":
-                    success = reset_points()  # Réinitialiser tous les points
+                    success, count = reset_points()
                     if success:
-                        await ctx.send("✅ Tous les points ont été réinitialisés !")
+                        if count > 0:
+                            await ctx.send(f"✅ Tous les points ont été réinitialisés ! ({count} points supprimés)")
+                        else:
+                            await ctx.send("ℹ️ Aucun point n'était enregistré dans la base de données.")
                     else:
                         await ctx.send("❌ Une erreur s'est produite lors de la réinitialisation des points.")
                 else:
@@ -653,10 +655,13 @@ async def reset_points(ctx, member: discord.Member = None):
         else:
             # Réinitialiser les points d'un utilisateur spécifique
             user_id = str(member.id)
-            success = reset_points(user_id)
+            success, count = reset_points(user_id)
             
             if success:
-                await ctx.send(f"✅ Les points de {member.mention} ont été réinitialisés !")
+                if count > 0:
+                    await ctx.send(f"✅ Les points de {member.mention} ont été réinitialisés ! ({count} points supprimés)")
+                else:
+                    await ctx.send(f"ℹ️ {member.mention} n'avait pas de points enregistrés.")
             else:
                 await ctx.send(f"❌ Une erreur s'est produite lors de la réinitialisation des points de {member.mention}.")
                 
@@ -664,7 +669,7 @@ async def reset_points(ctx, member: discord.Member = None):
         print(f"Erreur dans la commande reset_points: {str(e)}")
         await ctx.send("❌ Une erreur s'est produite lors de la réinitialisation des points.")
 
-@reset_points.error
+@reset_points_cmd.error
 async def reset_points_error(ctx, error):
     if isinstance(error, commands.MissingPermissions):
         await ctx.send("❌ Seuls les administrateurs peuvent réinitialiser les points.")
