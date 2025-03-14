@@ -72,7 +72,7 @@ def add_points(user_id: str, match_id: int, points: int) -> bool:
         
         # Préparation des données
         data = {
-            "user_id": user_id,
+            "user_id": str(user_id),
             "match_id": int(match_id),
             "points": int(points)
         }
