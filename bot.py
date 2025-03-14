@@ -7,8 +7,6 @@ from pathlib import Path
 from keep_alive import keep_alive
 from database import *  # Importe toutes les fonctions de database.py
 import asyncio
-from asyncio import Lock
-from functools import wraps
 
 # Obtenir le chemin absolu du fichier .env
 env_path = Path('.') / '.env'
@@ -155,27 +153,6 @@ async def help_vote(ctx):
 
 # Ajouter en haut du fichier
 vote_locks = {}
-point_lock = Lock()
-
-# Créer un dictionnaire pour suivre les commandes en cours d'exécution
-command_locks = {}
-
-def prevent_double_execution():
-    async def predicate(ctx):
-        # Créer une clé unique pour cette commande spécifique
-        command_key = f"{ctx.command.name}:{ctx.author.id}:{ctx.message.id}"
-        
-        if command_key in command_locks:
-            print(f"Commande {command_key} déjà en cours d'exécution, ignorée")
-            return False
-            
-        command_locks[command_key] = True
-        try:
-            return True
-        finally:
-            command_locks.pop(command_key, None)
-            
-    return commands.check(predicate)
 
 @bot.command()
 async def vote(ctx, match_id: int = None, *, team: str = None):
@@ -570,8 +547,11 @@ async def modifier_vote(ctx, match_id: int = None, *, team: str = None):
 
 # Commande pour attribuer des points
 @bot.command(name="point")
-@prevent_double_execution()
 async def point(ctx, user: discord.Member, match_id: int, points: int):
+    # Ignorer les messages du bot lui-même
+    if ctx.author.bot:
+        return
+        
     try:
         print(f"=== DÉBUT COMMANDE POINT ===")
         print(f"Message ID: {ctx.message.id}")
@@ -590,20 +570,18 @@ async def point(ctx, user: discord.Member, match_id: int, points: int):
         
         if success:
             team1, team2 = matches[match_id]
-            message = (
-                f"✅ {user.mention} a gagné {points} point{'s' if points > 1 else ''} pour le match {match_id} !\n"
-                f"└─ Match : {team1} vs {team2}\n"
-                f"└─ Points : {points}"
-            )
-            await ctx.send(message)
+            await ctx.message.add_reaction('✅')  # Ajouter une réaction au lieu d'envoyer un message
+            return  # Sortir immédiatement après la réaction
         else:
-            await ctx.send("❌ Une erreur s'est produite lors de l'attribution des points.")
+            await ctx.message.add_reaction('❌')
+            return
 
     except Exception as e:
         print(f"!!! ERREUR DANS LA COMMANDE POINT !!!")
         print(f"Type d'erreur: {type(e)}")
         print(f"Message d'erreur: {str(e)}")
-        await ctx.send("❌ Une erreur s'est produite lors de l'attribution des points.")
+        await ctx.message.add_reaction('❌')
+        return
 
 # Commande pour voir le classement des points
 @bot.command(name="classement")

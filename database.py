@@ -65,18 +65,24 @@ def get_votes(match_id):
 def add_points(user_id: str, match_id: int, points: int) -> bool:
     try:
         print(f"=== DÉBUT AJOUT POINTS DANS LA BDD ===")
-        print(f"Données reçues: user_id={user_id}, match_id={match_id}, points={points}")
+        print(f"Données reçues:")
+        print(f"- User ID: {user_id}")
+        print(f"- Match ID: {match_id}")
+        print(f"- Points: {points}")
         
-        # Utilisation de upsert (insert ou update si existe déjà)
-        result = supabase.table("points") \
-            .upsert({
-                "user_id": str(user_id),
-                "match_id": int(match_id),
-                "points": int(points)
-            }) \
-            .execute()
+        # Préparation des données
+        data = {
+            "user_id": str(user_id),
+            "match_id": int(match_id),
+            "points": int(points)
+        }
         
-        print(f"Résultat de l'opération: {result.data if hasattr(result, 'data') else result}")
+        print(f"Données préparées pour l'insertion: {data}")
+        
+        # Tentative d'insertion
+        result = supabase.table("points").insert(data).execute()
+        
+        print(f"Résultat de l'insertion: {result.data if hasattr(result, 'data') else result}")
         print("=== FIN AJOUT POINTS DANS LA BDD ===")
         return True
         
@@ -84,6 +90,7 @@ def add_points(user_id: str, match_id: int, points: int) -> bool:
         print(f"!!! ERREUR DANS ADD_POINTS !!!")
         print(f"Type d'erreur: {type(e)}")
         print(f"Message d'erreur: {str(e)}")
+        print(f"Données qui ont causé l'erreur: {data}")
         print("=== FIN ERREUR ===")
         return False
 
