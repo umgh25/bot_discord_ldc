@@ -64,34 +64,30 @@ def get_votes(match_id):
 # Fonction pour ajouter des points
 def add_points(user_id: str, match_id: int, points: int) -> bool:
     try:
-        print(f"=== DÉBUT AJOUT POINTS ===")
-        print(f"User ID: {user_id}")
-        print(f"Match ID: {match_id}")
-        print(f"Points: {points}")
+        print(f"=== DÉBUT AJOUT POINTS DANS LA BDD ===")
+        print(f"Données reçues:")
+        print(f"- User ID: {user_id}")
+        print(f"- Match ID: {match_id}")
+        print(f"- Points: {points}")
         
-        # Convertir le match_id et points en int2 (smallint)
-        match_id = int(match_id)
-        points = int(points)
-        
-        # Créer l'enregistrement avec tous les champs requis
+        # Préparation des données
         data = {
             "user_id": user_id,
-            "match_id": match_id,
-            "points": points,
-            "created_at": "now()"  # Timestamp automatique
+            "match_id": int(match_id),
+            "points": int(points)
         }
         
-        print("Tentative d'insertion avec les données:", data)
+        print(f"Données préparées pour l'insertion: {data}")
         
-        # Insertion dans la table points
+        # Tentative d'insertion
         result = supabase.table("points").insert(data).execute()
         
-        print("Résultat de l'insertion:", result.data if hasattr(result, 'data') else result)
-        print("=== FIN AJOUT POINTS ===")
+        print(f"Résultat de l'insertion: {result.data if hasattr(result, 'data') else result}")
+        print("=== FIN AJOUT POINTS DANS LA BDD ===")
         return True
         
     except Exception as e:
-        print(f"!!! ERREUR AJOUT POINTS !!!")
+        print(f"!!! ERREUR DANS ADD_POINTS !!!")
         print(f"Type d'erreur: {type(e)}")
         print(f"Message d'erreur: {str(e)}")
         print(f"Données qui ont causé l'erreur: {data}")

@@ -549,6 +549,9 @@ async def modifier_vote(ctx, match_id: int = None, *, team: str = None):
 @bot.command(name="point")
 @commands.has_permissions(administrator=True)
 async def point(ctx, member: discord.Member = None, match_id: int = None, point_value: int = None):
+    print("=== DÉBUT COMMANDE POINT ===")
+    print(f"Paramètres reçus: member={member}, match_id={match_id}, point_value={point_value}")
+    
     try:
         if None in (member, match_id, point_value):
             await ctx.send("❌ Format incorrect. Utilisez `!point @utilisateur 1 1`")
@@ -563,10 +566,16 @@ async def point(ctx, member: discord.Member = None, match_id: int = None, point_
             return
 
         user_id = str(member.id)
-        print(f"Attribution de points - User ID: {user_id}, Match: {match_id}, Points: {point_value}")
+        print(f"Tentative d'attribution de points:")
+        print(f"- User ID: {user_id}")
+        print(f"- Match ID: {match_id}")
+        print(f"- Points: {point_value}")
         
+        # Tentative d'ajout des points
         success = add_points(user_id, match_id, point_value)
+        
         if not success:
+            print("Échec de l'ajout des points")
             await ctx.send("❌ Une erreur s'est produite lors de l'attribution des points.")
             return
             
@@ -579,13 +588,13 @@ async def point(ctx, member: discord.Member = None, match_id: int = None, point_
                       f"└─ Points : **{point_value}**")
         
     except Exception as e:
-        print(f"Erreur dans la commande point: {str(e)}")
+        print(f"!!! ERREUR DANS LA COMMANDE POINT !!!")
+        print(f"Type d'erreur: {type(e)}")
+        print(f"Message d'erreur: {str(e)}")
+        print("=== FIN ERREUR ===")
         await ctx.send("❌ Une erreur s'est produite lors de l'attribution des points.")
 
-@point.error
-async def point_error(ctx, error):
-    if isinstance(error, commands.MissingPermissions):
-        await ctx.send("❌ Seuls les administrateurs peuvent attribuer des points.")
+    print("=== FIN COMMANDE POINT ===")
 
 # Commande pour voir le classement des points
 @bot.command(name="classement")
