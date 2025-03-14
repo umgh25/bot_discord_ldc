@@ -65,39 +65,21 @@ def get_votes(match_id):
 def add_points(user_id: str, match_id: int, points: int) -> bool:
     try:
         print(f"=== DÉBUT AJOUT POINTS DANS LA BDD ===")
-        print(f"Données reçues:")
-        print(f"- User ID: {user_id}")
-        print(f"- Match ID: {match_id}")
-        print(f"- Points: {points}")
         
-        # Vérifier si un enregistrement existe déjà
-        existing = supabase.table("points") \
-            .select("*") \
+        # Supprimer d'abord tout enregistrement existant
+        supabase.table("points") \
+            .delete() \
             .eq("user_id", str(user_id)) \
             .eq("match_id", int(match_id)) \
             .execute()
         
-        if existing.data:
-            # Mise à jour si existe déjà
-            print("Enregistrement existant trouvé, mise à jour...")
-            result = supabase.table("points") \
-                .update({
-                    "points": int(points),
-                    "created_at": "NOW()"
-                }) \
-                .eq("user_id", str(user_id)) \
-                .eq("match_id", int(match_id)) \
-                .execute()
-        else:
-            # Nouvelle insertion si n'existe pas
-            print("Nouvel enregistrement, insertion...")
-            result = supabase.table("points") \
-                .insert({
-                    "user_id": str(user_id),
-                    "match_id": int(match_id),
-                    "points": int(points),
-                    "created_at": "NOW()"
-                }).execute()
+        # Puis insérer le nouveau
+        result = supabase.table("points") \
+            .insert({
+                "user_id": str(user_id),
+                "match_id": int(match_id),
+                "points": int(points)
+            }).execute()
         
         print(f"Résultat de l'opération: {result.data if hasattr(result, 'data') else result}")
         print("=== FIN AJOUT POINTS DANS LA BDD ===")
