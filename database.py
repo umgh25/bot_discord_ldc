@@ -69,13 +69,16 @@ def add_points(user_id: str, match_id: int, points: int) -> bool:
         print(f"Match ID: {match_id}")
         print(f"Points: {points}")
         
-        # Créer un nouveau score directement (sans vérifier l'existence)
-        result = supabase.table("points").insert({
-            "user_id": user_id,  # Supabase convertira automatiquement en UUID
-            "match_id": match_id,
-            "points": points,
-            "created_at": "now()"
-        }).execute()
+        # Créer les données à insérer
+        data = {
+            "user_id": str(user_id),  # Conversion explicite en string
+            "match_id": int(match_id),  # Conversion explicite en int
+            "points": int(points)  # Conversion explicite en int
+        }
+        print(f"Données à insérer: {data}")
+        
+        # Tentative d'insertion
+        result = supabase.table("points").insert(data).execute()
         
         print(f"Résultat de l'insertion : {result.data if hasattr(result, 'data') else result}")
         print("=== FIN AJOUT POINTS ===")
@@ -84,7 +87,8 @@ def add_points(user_id: str, match_id: int, points: int) -> bool:
     except Exception as e:
         print(f"!!! ERREUR AJOUT POINTS !!!")
         print(f"Type d'erreur: {type(e)}")
-        print(f"Message d'erreur: {str(e)}")
+        print(f"Message d'erreur complet: {str(e)}")
+        print(f"Données qui ont causé l'erreur: user_id={user_id}, match_id={match_id}, points={points}")
         print("=== FIN ERREUR ===")
         return False
 

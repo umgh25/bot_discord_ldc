@@ -566,6 +566,7 @@ async def point(ctx, member: discord.Member = None, match_id: int = None, point_
             return
 
         user_id = str(member.id)
+        print(f"Tentative d'ajout de points pour user_id: {user_id}")
         
         # Récupérer le vote de l'utilisateur pour ce match
         vote_result = supabase.table("votes").select("choice").eq("user_id", user_id).eq("match_id", match_id).execute()
@@ -599,7 +600,7 @@ async def point(ctx, member: discord.Member = None, match_id: int = None, point_
         await ctx.send(confirmation)
         
     except Exception as e:
-        print(f"Erreur lors de l'attribution des points: {str(e)}")
+        print(f"Erreur dans la commande point: {str(e)}")
         await ctx.send(f"❌ Une erreur s'est produite lors de l'attribution des points.")
 
 @point.error
