@@ -62,21 +62,39 @@ def get_votes(match_id):
         return []
 
 # Fonction pour ajouter des points
-def add_points(user_id, points):
+def add_points(user_id: str, match_id: int, points: int) -> bool:
     try:
-        # Équivalent de ON CONFLICT DO UPDATE avec Supabase
-        # D'abord, vérifier si l'utilisateur existe
-        result = supabase.table("leaderboard").select("points").eq("user_id", user_id).execute()
+        print(f"=== DÉBUT AJOUT POINTS ===")
+        print(f"User ID: {user_id}")
+        print(f"Match ID: {match_id}")
+        print(f"Points: {points}")
         
-        if result.data and len(result.data) > 0:
-            # L'utilisateur existe, mettre à jour ses points
-            current_points = result.data[0]["points"]
-            supabase.table("leaderboard").update({"points": current_points + points}).eq("user_id", user_id).execute()
+        # Vérifier si un score existe déjà pour ce match et cet utilisateur
+        result = supabase.table("points").select("*").eq("user_id", user_id).eq("match_id", match_id).execute()
+        
+        if result.data:
+            # Mise à jour des points existants
+            supabase.table("points").update({
+                "points": points
+            }).eq("user_id", user_id).eq("match_id", match_id).execute()
         else:
-            # L'utilisateur n'existe pas, l'insérer
-            supabase.table("leaderboard").insert({"user_id": user_id, "points": points}).execute()
+            # Création d'un nouveau score
+            supabase.table("points").insert({
+                "user_id": user_id,
+                "match_id": match_id,
+                "points": points
+            }).execute()
+        
+        print("Points ajoutés avec succès")
+        print("=== FIN AJOUT POINTS ===")
+        return True
+        
     except Exception as e:
-        print(f"Erreur lors de l'ajout des points: {e}")
+        print(f"!!! ERREUR AJOUT POINTS !!!")
+        print(f"Type d'erreur: {type(e)}")
+        print(f"Message d'erreur: {str(e)}")
+        print("=== FIN ERREUR ===")
+        return False
 
 # Fonction pour récupérer le classement
 def get_leaderboard():
