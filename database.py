@@ -70,20 +70,32 @@ def add_points(user_id: str, match_id: int, points: int) -> bool:
         print(f"- Match ID: {match_id}")
         print(f"- Points: {points}")
         
-        # Préparation des données avec created_at
-        data = {
-            "user_id": str(user_id),
-            "match_id": int(match_id),
-            "points": int(points),
-            "created_at": "now()"  # Ajout du timestamp actuel
-        }
+        # Vérifier si un enregistrement existe déjà
+        existing = supabase.table("points") \
+            .select("*") \
+            .eq("user_id", str(user_id)) \
+            .eq("match_id", int(match_id)) \
+            .execute()
         
-        print(f"Données préparées pour l'insertion: {data}")
+        if existing.data:
+            # Mise à jour si existe déjà
+            print("Enregistrement existant trouvé, mise à jour...")
+            result = supabase.table("points") \
+                .update({"points": int(points)}) \
+                .eq("user_id", str(user_id)) \
+                .eq("match_id", int(match_id)) \
+                .execute()
+        else:
+            # Nouvelle insertion si n'existe pas
+            print("Nouvel enregistrement, insertion...")
+            result = supabase.table("points") \
+                .insert({
+                    "user_id": str(user_id),
+                    "match_id": int(match_id),
+                    "points": int(points)
+                }).execute()
         
-        # Tentative d'insertion
-        result = supabase.table("points").insert(data).execute()
-        
-        print(f"Résultat de l'insertion: {result.data if hasattr(result, 'data') else result}")
+        print(f"Résultat de l'opération: {result.data if hasattr(result, 'data') else result}")
         print("=== FIN AJOUT POINTS DANS LA BDD ===")
         return True
         
@@ -91,7 +103,6 @@ def add_points(user_id: str, match_id: int, points: int) -> bool:
         print(f"!!! ERREUR DANS ADD_POINTS !!!")
         print(f"Type d'erreur: {type(e)}")
         print(f"Message d'erreur: {str(e)}")
-        print(f"Données qui ont causé l'erreur: {data}")
         print("=== FIN ERREUR ===")
         return False
 
