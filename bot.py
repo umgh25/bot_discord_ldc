@@ -153,6 +153,7 @@ async def help_vote(ctx):
 
 # Ajouter en haut du fichier
 vote_locks = {}
+point_locks = {}
 
 @bot.command()
 async def vote(ctx, match_id: int = None, *, team: str = None):
@@ -549,6 +550,13 @@ async def modifier_vote(ctx, match_id: int = None, *, team: str = None):
 @bot.command(name="point")
 @commands.has_permissions(administrator=True)
 async def point(ctx, member: discord.Member = None, match_id: int = None, point_value: int = None):
+    # Vérifier si l'utilisateur a une attribution de points en cours
+    user_id = str(member.id) if member else None
+    if user_id in point_locks:
+        await ctx.send("⚠️ Une attribution de points est déjà en cours pour cet utilisateur.")
+        return
+        
+    point_locks[user_id] = True
     try:
         if None in (member, match_id, point_value):
             await ctx.send("❌ Format incorrect. Utilisez `!point @utilisateur 1 1`")
@@ -562,7 +570,9 @@ async def point(ctx, member: discord.Member = None, match_id: int = None, point_
             await ctx.send("❌ Les points doivent être 1 (victoire) ou -1 (absence)")
             return
 
-        user_id = str(member.id)
+        # Attendre un court instant pour éviter les doublons
+        await asyncio.sleep(0.5)
+        
         success = add_points(user_id, match_id, point_value)
         
         if not success:
@@ -571,7 +581,6 @@ async def point(ctx, member: discord.Member = None, match_id: int = None, point_
             
         team1, team2 = matches[match_id]
         
-        # Construction du message de confirmation
         if point_value > 0:
             message = f"✅ {member.mention} a gagné **{point_value}** point pour le match {match_id} !\n"
         else:
@@ -585,6 +594,15 @@ async def point(ctx, member: discord.Member = None, match_id: int = None, point_
     except Exception as e:
         print(f"Erreur dans la commande point: {str(e)}")
         await ctx.send("❌ Une erreur s'est produite lors de l'attribution des points.")
+    finally:
+        # Toujours libérer le verrou
+        if user_id in point_locks:
+            del point_locks[user_id]
+
+@point.error
+async def point_error(ctx, error):
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send("❌ Seuls les administrateurs peuvent attribuer des points.")
 
 # Commande pour voir le classement des points
 @bot.command(name="classement")
