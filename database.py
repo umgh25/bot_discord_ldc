@@ -102,11 +102,20 @@ def add_points(user_id: str, match_id: int, points: int) -> bool:
 # Fonction pour récupérer le classement
 def get_leaderboard():
     try:
-        result = supabase.table("leaderboard").select("user_id, points").order("points", desc=True).execute()
-        # Convertir le résultat en format similaire à SQLite (liste de tuples)
-        return [(item["user_id"], item["points"]) for item in result.data]
+        print("=== DÉBUT RÉCUPÉRATION CLASSEMENT ===")
+        
+        # Requête pour sommer les points par utilisateur
+        result = supabase.rpc('calculate_total_points').execute()
+        
+        print(f"Résultat du classement: {result.data if hasattr(result, 'data') else result}")
+        print("=== FIN RÉCUPÉRATION CLASSEMENT ===")
+        return result.data if result.data else []
+        
     except Exception as e:
-        print(f"Erreur lors de la récupération du classement: {e}")
+        print(f"!!! ERREUR DANS GET_LEADERBOARD !!!")
+        print(f"Type d'erreur: {type(e)}")
+        print(f"Message d'erreur: {str(e)}")
+        print("=== FIN ERREUR ===")
         return []
 
 # Fonction pour enregistrer le canal de votes

@@ -589,32 +589,67 @@ async def point(ctx, member: discord.Member = None, match_id: int = None, point_
 # Commande pour voir le classement des points
 @bot.command(name="classement")
 async def classement(ctx):
-    if not points:
-        await ctx.send("❌ Aucun point n'a encore été attribué.")
-        return
-    
-    # Calculer les points totaux pour chaque utilisateur
-    totaux = {}
-    for user_id, user_points in points.items():
-        total = sum(user_points.values())
-        totaux[user_id] = total
-    
-    # Trier les utilisateurs par points
-    classement = sorted(totaux.items(), key=lambda x: x[1], reverse=True)
-    
-    message = "**🏆 CLASSEMENT GÉNÉRAL 🏆**\n\n"
-    
-    for i, (user_id, total) in enumerate(classement, 1):
-        try:
-            user = await bot.fetch_user(int(user_id))
-            username = user.name
-        except:
-            username = f"Utilisateur_{user_id}"
+    try:
+        # Récupérer le classement
+        leaderboard_data = get_leaderboard()
+        
+        if not leaderboard_data:
+            await ctx.send("❌ Aucun point n'a encore été attribué.")
+            return
+        
+        # Créer le message de classement
+        message = "**🏆 CLASSEMENT GÉNÉRAL 🏆**\n\n"
+        
+        # Cache pour stocker les noms d'utilisateurs
+        users_cache = {}
+        
+        # Créer le classement
+        for index, entry in enumerate(leaderboard_data, 1):
+            user_id = entry['user_id']
+            points = entry['total_points']
             
-        medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else "👤"
-        message += f"{medal} **{username}** : {total} point(s)\n"
-    
-    await ctx.send(message)
+            # Récupérer le nom d'utilisateur
+            if user_id not in users_cache:
+                try:
+                    user = await bot.fetch_user(int(user_id))
+                    users_cache[user_id] = user.name
+                except:
+                    users_cache[user_id] = f"Utilisateur_{user_id}"
+            
+            username = users_cache[user_id]
+            
+            # Ajouter les médailles pour le top 3
+            if index == 1:
+                medal = "🥇"
+            elif index == 2:
+                medal = "🥈"
+            elif index == 3:
+                medal = "🥉"
+            else:
+                medal = "👤"
+            
+            message += f"{medal} **{username}** : {points} point(s)\n"
+        
+        # Ajouter une ligne de séparation
+        message += "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        
+        # Ajouter des statistiques
+        total_participants = len(leaderboard_data)
+        total_points = sum(entry['total_points'] for entry in leaderboard_data)
+        
+        message += f"\n📊 **Statistiques**\n"
+        message += f"└─ Participants : **{total_participants}**\n"
+        message += f"└─ Total des points : **{total_points}**\n"
+        
+        if total_participants > 0:
+            avg_points = total_points / total_participants
+            message += f"└─ Moyenne : **{avg_points:.1f}** points par participant"
+        
+        await ctx.send(message)
+        
+    except Exception as e:
+        print(f"Erreur dans la commande classement: {str(e)}")
+        await ctx.send("❌ Une erreur s'est produite lors de la récupération du classement.")
 
 # Commande pour réinitialiser les points
 @bot.command(name="reset_points")
