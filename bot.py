@@ -598,9 +598,10 @@ async def point_error(ctx, error):
 
 # Commande pour voir le classement des points
 @bot.command(name="classement")
+@commands.cooldown(1, 3, commands.BucketType.user)  # 1 utilisation toutes les 3 secondes par utilisateur
 async def classement(ctx):
-    # Éviter les réponses en double
-    if ctx.message.author.bot:
+    # Ignorer si c'est une réponse à un message du bot
+    if ctx.message.reference and ctx.message.reference.resolved.author.id == bot.user.id:
         return
         
     try:
@@ -664,6 +665,11 @@ async def classement(ctx):
     except Exception as e:
         print(f"Erreur dans la commande classement: {str(e)}")
         await ctx.reply("❌ Une erreur s'est produite lors de la récupération du classement.")
+
+@classement.error
+async def classement_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        return  # Ignorer silencieusement les erreurs de cooldown
 
 # Commande pour réinitialiser les points
 @bot.command(name="reset_points")
