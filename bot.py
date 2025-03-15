@@ -606,7 +606,7 @@ async def classement(ctx):
         # Créer le classement
         for index, entry in enumerate(leaderboard_data, 1):
             user_id = entry['user_id']
-            points = entry['total_points']
+            points = entry['points']  # Utiliser 'points' au lieu de 'total_points'
             
             # Récupérer le nom d'utilisateur
             if user_id not in users_cache:
@@ -635,7 +635,7 @@ async def classement(ctx):
         
         # Ajouter des statistiques
         total_participants = len(leaderboard_data)
-        total_points = sum(entry['total_points'] for entry in leaderboard_data)
+        total_points = sum(entry['points'] for entry in leaderboard_data)
         
         message += f"\n📊 **Statistiques**\n"
         message += f"└─ Participants : **{total_participants}**\n"

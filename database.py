@@ -104,8 +104,8 @@ def get_leaderboard():
     try:
         print("=== DÉBUT RÉCUPÉRATION CLASSEMENT ===")
         
-        # Requête pour sommer les points par utilisateur
-        result = supabase.rpc('calculate_total_points').execute()
+        # Récupérer directement depuis la table leaderboard, triée par points décroissants
+        result = supabase.table("leaderboard").select("*").order("points", desc=True).execute()
         
         print(f"Résultat du classement: {result.data if hasattr(result, 'data') else result}")
         print("=== FIN RÉCUPÉRATION CLASSEMENT ===")
