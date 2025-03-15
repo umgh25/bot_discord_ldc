@@ -61,7 +61,42 @@ def get_votes(match_id):
         print(f"Erreur lors de la récupération des votes: {e}")
         return []
 
-# Fonction pour ajouter des points
+def update_leaderboard(user_id: str) -> bool:
+    try:
+        print(f"=== DÉBUT MISE À JOUR LEADERBOARD POUR {user_id} ===")
+        
+        # Calculer le total des points pour cet utilisateur
+        points_result = supabase.table("points").select("points").eq("user_id", user_id).execute()
+        total_points = sum(entry['points'] for entry in points_result.data) if points_result.data else 0
+        
+        print(f"Total des points calculé: {total_points}")
+        
+        # Vérifier si l'utilisateur existe déjà dans le leaderboard
+        existing = supabase.table("leaderboard").select("*").eq("user_id", user_id).execute()
+        
+        if existing.data:
+            # Mettre à jour les points
+            result = supabase.table("leaderboard").update({
+                "points": total_points
+            }).eq("user_id", user_id).execute()
+        else:
+            # Créer une nouvelle entrée
+            result = supabase.table("leaderboard").insert({
+                "user_id": user_id,
+                "points": total_points
+            }).execute()
+            
+        print(f"Leaderboard mis à jour pour {user_id} avec {total_points} points")
+        print("=== FIN MISE À JOUR LEADERBOARD ===")
+        return True
+        
+    except Exception as e:
+        print(f"!!! ERREUR MISE À JOUR LEADERBOARD !!!")
+        print(f"Type d'erreur: {type(e)}")
+        print(f"Message d'erreur: {str(e)}")
+        print("=== FIN ERREUR ===")
+        return False
+
 def add_points(user_id: str, match_id: int, points: int) -> bool:
     try:
         print(f"=== DÉBUT AJOUT POINTS DANS LA BDD ===")
@@ -88,7 +123,9 @@ def add_points(user_id: str, match_id: int, points: int) -> bool:
                 "points": int(points)
             }).execute()
         
-        print(f"Résultat de l'opération: {result.data if hasattr(result, 'data') else result}")
+        # Mettre à jour le leaderboard
+        update_leaderboard(user_id)
+        
         print("=== FIN AJOUT POINTS DANS LA BDD ===")
         return True
         
@@ -137,7 +174,6 @@ def get_channel():
         print(f"Erreur lors de la récupération du canal: {e}")
         return None
 
-# Fonction pour réinitialiser les points
 def reset_points(user_id: str = None) -> tuple[bool, int]:
     try:
         print(f"=== DÉBUT RESET POINTS ===")
@@ -154,6 +190,9 @@ def reset_points(user_id: str = None) -> tuple[bool, int]:
                 
             # Supprimer les points
             result = supabase.table("points").delete().eq("user_id", user_id).execute()
+            # Mettre à jour le leaderboard
+            update_leaderboard(user_id)
+            
             print(f"Nombre de points supprimés: {points_count}")
             
         else:
@@ -168,6 +207,9 @@ def reset_points(user_id: str = None) -> tuple[bool, int]:
                 
             # Supprimer tous les points
             result = supabase.table("points").delete().neq("user_id", "dummy").execute()
+            # Vider le leaderboard
+            supabase.table("leaderboard").delete().neq("user_id", "dummy").execute()
+            
             print(f"Nombre total de points supprimés: {points_count}")
         
         print("=== FIN RESET POINTS ===")
