@@ -598,18 +598,17 @@ async def point_error(ctx, error):
 
 # Commande pour voir le classement des points
 @bot.command(name="classement")
-@commands.cooldown(1, 3, commands.BucketType.user)  # 1 utilisation toutes les 3 secondes par utilisateur
+@commands.cooldown(1, 3, commands.BucketType.user)
 async def classement(ctx):
-    # Ignorer si c'est une réponse à un message du bot
-    if ctx.message.reference and ctx.message.reference.resolved.author.id == bot.user.id:
-        return
-        
     try:
+        # Supprimer la commande de l'utilisateur
+        await ctx.message.delete()
+        
         # Récupérer le classement
         leaderboard_data = get_leaderboard()
         
         if not leaderboard_data:
-            await ctx.reply("❌ Aucun point n'a encore été attribué.")
+            await ctx.send("❌ Aucun point n'a encore été attribué.")
             return
         
         # Créer le message de classement
@@ -660,16 +659,16 @@ async def classement(ctx):
             avg_points = total_points / total_participants
             message += f"└─ Moyenne : **{avg_points:.1f}** points par participant"
         
-        await ctx.reply(message)
+        await ctx.send(message)
         
     except Exception as e:
         print(f"Erreur dans la commande classement: {str(e)}")
-        await ctx.reply("❌ Une erreur s'est produite lors de la récupération du classement.")
+        await ctx.send("❌ Une erreur s'est produite lors de la récupération du classement.")
 
 @classement.error
 async def classement_error(ctx, error):
     if isinstance(error, commands.CommandOnCooldown):
-        return  # Ignorer silencieusement les erreurs de cooldown
+        return
 
 # Commande pour réinitialiser les points
 @bot.command(name="reset_points")
