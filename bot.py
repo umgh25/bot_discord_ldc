@@ -601,14 +601,11 @@ async def point_error(ctx, error):
 @commands.cooldown(1, 3, commands.BucketType.user)
 async def classement(ctx):
     try:
-        # Supprimer la commande de l'utilisateur
-        await ctx.message.delete()
-        
         # Récupérer le classement
         leaderboard_data = get_leaderboard()
         
         if not leaderboard_data:
-            await ctx.send("❌ Aucun point n'a encore été attribué.")
+            await ctx.reply("❌ Aucun point n'a encore été attribué.")
             return
         
         # Créer le message de classement
@@ -659,11 +656,18 @@ async def classement(ctx):
             avg_points = total_points / total_participants
             message += f"└─ Moyenne : **{avg_points:.1f}** points par participant"
         
-        await ctx.send(message)
+        # Utiliser ctx.reply pour garder la référence à la commande
+        await ctx.reply(message, mention_author=False)  # mention_author=False évite de mentionner l'utilisateur
+        
+        # Supprimer la commande après un court délai
+        try:
+            await ctx.message.delete()
+        except:
+            pass
         
     except Exception as e:
         print(f"Erreur dans la commande classement: {str(e)}")
-        await ctx.send("❌ Une erreur s'est produite lors de la récupération du classement.")
+        await ctx.reply("❌ Une erreur s'est produite lors de la récupération du classement.")
 
 @classement.error
 async def classement_error(ctx, error):
