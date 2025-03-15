@@ -160,7 +160,7 @@ async def vote(ctx, match_id: int = None, *, team: str = None):
     # Vérifier si l'utilisateur a un vote en cours
     user_id = str(ctx.author.id)
     if user_id in vote_locks:
-        await ctx.reply("⚠️ Veuillez attendre que votre vote précédent soit terminé.")
+        await ctx.send("⚠️ Veuillez attendre que votre vote précédent soit terminé.")
         return
         
     vote_locks[user_id] = True
@@ -171,18 +171,18 @@ async def vote(ctx, match_id: int = None, *, team: str = None):
         
         # Vérifications habituelles...
         if match_id is None or team is None:
-            await ctx.reply("❌ Format incorrect. Utilisez `!vote <numéro du match> <nom de l'équipe>`")
+            await ctx.send("❌ Format incorrect. Utilisez `!vote <numéro du match> <nom de l'équipe>`")
             return
         
         if match_id not in matches:
-            await ctx.reply(f"❌ Match {match_id} invalide. Les matchs disponibles sont de 1 à {len(matches)}.")
+            await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont de 1 à {len(matches)}.")
             return
 
         team1, team2 = matches[match_id]
         team = team.strip()
         
         if team.lower() not in [team1.lower(), team2.lower()]:
-            await ctx.reply(f"❌ Équipe invalide. Pour le match {match_id}, vous pouvez seulement voter pour :\n- **{team1}**\n- **{team2}**")
+            await ctx.send(f"❌ Équipe invalide. Pour le match {match_id}, vous pouvez seulement voter pour :\n- **{team1}**\n- **{team2}**")
             return
         
         team = team1 if team.lower() == team1.lower() else team2
@@ -193,13 +193,13 @@ async def vote(ctx, match_id: int = None, *, team: str = None):
         success = save_vote(user_id, match_id, team)
         
         if success:
-            await ctx.reply(f"✅ {ctx.author.mention}, tu as voté pour **{team}** dans le match **{team1}** vs **{team2}**.")
+            await ctx.send(f"✅ {ctx.author.mention}, tu as voté pour **{team}** dans le match **{team1}** vs **{team2}**.")
         else:
-            await ctx.reply(f"❌ {ctx.author.mention}, il y a eu une erreur lors de l'enregistrement de ton vote.")
+            await ctx.send(f"❌ {ctx.author.mention}, il y a eu une erreur lors de l'enregistrement de ton vote.")
             
     except Exception as e:
         print(f"Erreur lors du vote: {str(e)}")
-        await ctx.reply(f"❌ Une erreur s'est produite lors du vote.")
+        await ctx.send(f"❌ Une erreur s'est produite lors du vote.")
     finally:
         # Toujours libérer le verrou
         if user_id in vote_locks:
@@ -219,7 +219,7 @@ async def supprimer_vote(ctx, match_id: int):
         result = supabase.table("votes").select("*").eq("user_id", user_id).eq("match_id", match_id).execute()
         
         if not result.data:
-            await ctx.reply(f"❌ {ctx.author.mention}, tu n'as pas encore voté pour le match {match_id}.")
+            await ctx.send(f"❌ {ctx.author.mention}, tu n'as pas encore voté pour le match {match_id}.")
             return
         
         # Suppression du vote
@@ -228,13 +228,13 @@ async def supprimer_vote(ctx, match_id: int):
         # Récupérer les équipes du match pour le message
         if match_id in matches:
             team1, team2 = matches[match_id]
-            await ctx.reply(f"✅ {ctx.author.mention}, ton vote pour le match {match_id} ({team1} vs {team2}) a été supprimé !")
+            await ctx.send(f"✅ {ctx.author.mention}, ton vote pour le match {match_id} ({team1} vs {team2}) a été supprimé !")
         else:
-            await ctx.reply(f"✅ {ctx.author.mention}, ton vote pour le match {match_id} a été supprimé !")
+            await ctx.send(f"✅ {ctx.author.mention}, ton vote pour le match {match_id} a été supprimé !")
             
     except Exception as e:
         print(f"Erreur lors de la suppression du vote: {str(e)}")
-        await ctx.reply(f"❌ Une erreur s'est produite lors de la suppression du vote.")
+        await ctx.send(f"❌ Une erreur s'est produite lors de la suppression du vote.")
 
 # Commande !programme (Annonce du quiz)
 
@@ -306,7 +306,7 @@ async def recap(ctx):
         user_votes = result.data
         
         if not user_votes:
-            await ctx.reply(f"❌ {ctx.author.mention}, tu n'as pas encore voté pour aucun match.")
+            await ctx.send(f"❌ {ctx.author.mention}, tu n'as pas encore voté pour aucun match.")
             return
             
         recap_message = f"**📊 Récapitulatif de vos votes {ctx.author.mention} :**\n\n"
@@ -336,11 +336,11 @@ async def recap(ctx):
         else:
             recap_message += f"\n✅ Vous avez voté pour tous les matches !"
 
-        await ctx.reply(recap_message)
+        await ctx.send(recap_message)
         
     except Exception as e:
         print(f"Erreur lors du récap: {str(e)}")
-        await ctx.reply(f"❌ Une erreur s'est produite lors de la récupération de vos votes.")
+        await ctx.send(f"❌ Une erreur s'est produite lors de la récupération de vos votes.")
 
 # Commande pour voir le récapitulatif des votes
 @bot.command(name="all_votes")
@@ -351,7 +351,7 @@ async def all_votes(ctx):
         all_votes = result.data
         
         if not all_votes:
-            await ctx.reply("❌ Aucun vote n'a encore été enregistré.")
+            await ctx.send("❌ Aucun vote n'a encore été enregistré.")
             return
         
         # Créer un dictionnaire pour organiser les votes par match
@@ -422,7 +422,7 @@ async def all_votes(ctx):
         message += f"└─ Moyenne par utilisateur : **{total_votes/total_users:.1f}**\n\n"
         
         try:
-            await ctx.reply(message)
+            await ctx.send(message)
         except discord.HTTPException:
             # Si le message est trop long, on le divise
             messages = []
@@ -436,21 +436,18 @@ async def all_votes(ctx):
             if current_message:
                 messages.append(current_message)
             
-            # Envoyer le premier message avec reply
-            await ctx.reply(messages[0])
-            # Envoyer les messages suivants normalement
-            for msg in messages[1:]:
+            for msg in messages:
                 await ctx.send(msg)
                 
     except Exception as e:
         print(f"Erreur lors de l'affichage des votes: {str(e)}")
-        await ctx.reply(f"❌ Une erreur s'est produite lors de la récupération des votes.")
+        await ctx.send(f"❌ Une erreur s'est produite lors de la récupération des votes.")
 
 # Commande pour voir les votes d'un utilisateur spécifique
 @bot.command(name="voir_votes")
 async def voir_votes(ctx, member: discord.Member = None):
     if member is None:
-        await ctx.reply("❌ Veuillez mentionner un utilisateur. Exemple : `!voir_votes @utilisateur`")
+        await ctx.send("❌ Veuillez mentionner un utilisateur. Exemple : `!voir_votes @utilisateur`")
         return
 
     user_id = str(member.id)
@@ -461,7 +458,7 @@ async def voir_votes(ctx, member: discord.Member = None):
         user_votes = result.data
         
         if not user_votes:
-            await ctx.reply(f"❌ {member.mention} n'a pas encore voté pour aucun match.")
+            await ctx.send(f"❌ {member.mention} n'a pas encore voté pour aucun match.")
             return
             
         recap_message = f"**📊 Votes de {member.mention} :**\n\n"
@@ -491,11 +488,11 @@ async def voir_votes(ctx, member: discord.Member = None):
         else:
             recap_message += f"\n✅ A voté pour tous les matches !"
 
-        await ctx.reply(recap_message)
+        await ctx.send(recap_message)
         
     except Exception as e:
         print(f"Erreur lors de la récupération des votes: {str(e)}")
-        await ctx.reply(f"❌ Une erreur s'est produite lors de la récupération des votes.")
+        await ctx.send(f"❌ Une erreur s'est produite lors de la récupération des votes.")
 
 # Commande pour modifier un vote existant
 @bot.command(name="modifier_vote")
@@ -505,19 +502,19 @@ async def modifier_vote(ctx, match_id: int = None, *, team: str = None):
     try:
         # Vérifier si les paramètres sont fournis
         if match_id is None or team is None:
-            await ctx.reply("❌ Format incorrect. Utilisez `!modifier_vote <numéro du match> <nom de l'équipe>`")
+            await ctx.send("❌ Format incorrect. Utilisez `!modifier_vote <numéro du match> <nom de l'équipe>`")
             return
 
         # Vérifier si le match existe
         if match_id not in matches:
-            await ctx.reply(f"❌ Match {match_id} invalide. Les matchs disponibles sont de 1 à {len(matches)}.")
+            await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont de 1 à {len(matches)}.")
             return
 
         # Vérifier si l'utilisateur a déjà voté pour ce match
         result = supabase.table("votes").select("*").eq("user_id", user_id).eq("match_id", match_id).execute()
         
         if not result.data:
-            await ctx.reply(f"❌ Vous n'avez pas encore voté pour le match {match_id}. Utilisez `!vote` pour voter.")
+            await ctx.send(f"❌ Vous n'avez pas encore voté pour le match {match_id}. Utilisez `!vote` pour voter.")
             return
 
         team1, team2 = matches[match_id]
@@ -526,12 +523,12 @@ async def modifier_vote(ctx, match_id: int = None, *, team: str = None):
         # Normaliser le nom de l'équipe pour la comparaison
         team = team.strip()
         if team.lower() not in [team1.lower(), team2.lower()]:
-            await ctx.reply(f"❌ Équipe invalide. Pour le match {match_id}, vous pouvez seulement voter pour :\n- **{team1}**\n- **{team2}**")
+            await ctx.send(f"❌ Équipe invalide. Pour le match {match_id}, vous pouvez seulement voter pour :\n- **{team1}**\n- **{team2}**")
             return
 
         # Si l'utilisateur vote pour la même équipe
         if team.lower() == ancien_vote.lower():
-            await ctx.reply(f"ℹ️ Vous avez déjà voté pour **{ancien_vote}** dans ce match.")
+            await ctx.send(f"ℹ️ Vous avez déjà voté pour **{ancien_vote}** dans ce match.")
             return
 
         # Trouver le nom exact de l'équipe (pour garder la casse correcte)
@@ -540,14 +537,14 @@ async def modifier_vote(ctx, match_id: int = None, *, team: str = None):
         # Modifier le vote dans Supabase
         supabase.table("votes").update({"choice": team}).eq("user_id", user_id).eq("match_id", match_id).execute()
 
-        await ctx.reply(f"✅ {ctx.author.mention}, votre vote a été modifié !\n"
+        await ctx.send(f"✅ {ctx.author.mention}, votre vote a été modifié !\n"
                     f"**Match {match_id}** : {team1} vs {team2}\n"
                     f"└─ Ancien vote : **{ancien_vote}**\n"
                     f"└─ Nouveau vote : **{team}** 🔄")
 
     except Exception as e:
         print(f"Erreur lors de la modification du vote: {str(e)}")
-        await ctx.reply(f"❌ Une erreur s'est produite lors de la modification du vote.")
+        await ctx.send(f"❌ Une erreur s'est produite lors de la modification du vote.")
 
 # Commande pour attribuer des points
 @bot.command(name="point")
@@ -555,22 +552,22 @@ async def modifier_vote(ctx, match_id: int = None, *, team: str = None):
 async def point(ctx, member: discord.Member = None, match_id: int = None, point_value: int = None):
     try:
         if None in (member, match_id, point_value):
-            await ctx.reply("❌ Format incorrect. Utilisez `!point @utilisateur 1 1`")
+            await ctx.send("❌ Format incorrect. Utilisez `!point @utilisateur 1 1`")
             return
 
         if match_id not in matches:
-            await ctx.reply(f"❌ Match {match_id} invalide. Les matchs disponibles sont de 1 à {len(matches)}.")
+            await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont de 1 à {len(matches)}.")
             return
 
         if point_value not in [-1, 1]:
-            await ctx.reply("❌ Les points doivent être 1 (victoire) ou -1 (absence)")
+            await ctx.send("❌ Les points doivent être 1 (victoire) ou -1 (absence)")
             return
 
         user_id = str(member.id)
         success = add_points(user_id, match_id, point_value)
         
         if not success:
-            await ctx.reply("❌ Une erreur s'est produite lors de l'attribution des points.")
+            await ctx.send("❌ Une erreur s'est produite lors de l'attribution des points.")
             return
             
         team1, team2 = matches[match_id]
@@ -583,29 +580,28 @@ async def point(ctx, member: discord.Member = None, match_id: int = None, point_
         message += f"└─ Match : **{team1}** vs **{team2}**\n"
         message += f"└─ Points : **{point_value}**"
         
-        await ctx.reply(message)
+        await ctx.reply(message)  # Utiliser reply au lieu de send
         
     except commands.MaxConcurrencyReached:
-        await ctx.reply("⚠️ Une commande est déjà en cours pour cet utilisateur.")
+        await ctx.send("⚠️ Une commande est déjà en cours pour cet utilisateur.")
     except Exception as e:
         print(f"Erreur dans la commande point: {str(e)}")
-        await ctx.reply("❌ Une erreur s'est produite lors de l'attribution des points.")
+        await ctx.send("❌ Une erreur s'est produite lors de l'attribution des points.")
 
 @point.error
 async def point_error(ctx, error):
     if isinstance(error, commands.MissingPermissions):
-        await ctx.reply("❌ Seuls les administrateurs peuvent attribuer des points.")
+        await ctx.send("❌ Seuls les administrateurs peuvent attribuer des points.")
 
 # Commande pour voir le classement des points
 @bot.command(name="classement")
-@commands.cooldown(1, 3, commands.BucketType.user)
 async def classement(ctx):
     try:
         # Récupérer le classement
         leaderboard_data = get_leaderboard()
         
         if not leaderboard_data:
-            await ctx.reply("❌ Aucun point n'a encore été attribué.")
+            await ctx.send("❌ Aucun point n'a encore été attribué.")
             return
         
         # Créer le message de classement
@@ -617,7 +613,7 @@ async def classement(ctx):
         # Créer le classement
         for index, entry in enumerate(leaderboard_data, 1):
             user_id = entry['user_id']
-            points = entry['points']
+            points = entry['points']  # Utiliser 'points' au lieu de 'total_points'
             
             # Récupérer le nom d'utilisateur
             if user_id not in users_cache:
@@ -656,23 +652,11 @@ async def classement(ctx):
             avg_points = total_points / total_participants
             message += f"└─ Moyenne : **{avg_points:.1f}** points par participant"
         
-        # Utiliser ctx.reply pour garder la référence à la commande
-        await ctx.reply(message, mention_author=False)  # mention_author=False évite de mentionner l'utilisateur
-        
-        # Supprimer la commande après un court délai
-        try:
-            await ctx.message.delete()
-        except:
-            pass
+        await ctx.send(message)
         
     except Exception as e:
         print(f"Erreur dans la commande classement: {str(e)}")
-        await ctx.reply("❌ Une erreur s'est produite lors de la récupération du classement.")
-
-@classement.error
-async def classement_error(ctx, error):
-    if isinstance(error, commands.CommandOnCooldown):
-        return
+        await ctx.send("❌ Une erreur s'est produite lors de la récupération du classement.")
 
 # Commande pour réinitialiser les points
 @bot.command(name="reset_points")
@@ -681,7 +665,7 @@ async def reset_points_cmd(ctx, member: discord.Member = None):
     try:
         if member is None:
             # Demander confirmation pour réinitialiser tous les points
-            confirmation_message = await ctx.reply("⚠️ Voulez-vous vraiment réinitialiser **TOUS** les points ?\n"
+            confirmation_message = await ctx.send("⚠️ Voulez-vous vraiment réinitialiser **TOUS** les points ?\n"
                                                "Cette action est irréversible !\n"
                                                "✅ = Confirmer\n"
                                                "❌ = Annuler")
@@ -699,16 +683,16 @@ async def reset_points_cmd(ctx, member: discord.Member = None):
                     success, count = reset_points()
                     if success:
                         if count > 0:
-                            await ctx.reply(f"✅ Tous les points ont été réinitialisés ! ({count} points supprimés)")
+                            await ctx.send(f"✅ Tous les points ont été réinitialisés ! ({count} points supprimés)")
                         else:
-                            await ctx.reply("ℹ️ Aucun point n'était enregistré dans la base de données.")
+                            await ctx.send("ℹ️ Aucun point n'était enregistré dans la base de données.")
                     else:
-                        await ctx.reply("❌ Une erreur s'est produite lors de la réinitialisation des points.")
+                        await ctx.send("❌ Une erreur s'est produite lors de la réinitialisation des points.")
                 else:
-                    await ctx.reply("❌ Réinitialisation annulée.")
+                    await ctx.send("❌ Réinitialisation annulée.")
                     
             except TimeoutError:
-                await ctx.reply("❌ Temps écoulé. Réinitialisation annulée.")
+                await ctx.send("❌ Temps écoulé. Réinitialisation annulée.")
                 
         else:
             # Réinitialiser les points d'un utilisateur spécifique
@@ -717,20 +701,20 @@ async def reset_points_cmd(ctx, member: discord.Member = None):
             
             if success:
                 if count > 0:
-                    await ctx.reply(f"✅ Les points de {member.mention} ont été réinitialisés ! ({count} points supprimés)")
+                    await ctx.send(f"✅ Les points de {member.mention} ont été réinitialisés ! ({count} points supprimés)")
                 else:
-                    await ctx.reply(f"ℹ️ {member.mention} n'avait pas de points enregistrés.")
+                    await ctx.send(f"ℹ️ {member.mention} n'avait pas de points enregistrés.")
             else:
-                await ctx.reply(f"❌ Une erreur s'est produite lors de la réinitialisation des points de {member.mention}.")
+                await ctx.send(f"❌ Une erreur s'est produite lors de la réinitialisation des points de {member.mention}.")
                 
     except Exception as e:
         print(f"Erreur dans la commande reset_points: {str(e)}")
-        await ctx.reply("❌ Une erreur s'est produite lors de la réinitialisation des points.")
+        await ctx.send("❌ Une erreur s'est produite lors de la réinitialisation des points.")
 
 @reset_points_cmd.error
 async def reset_points_error(ctx, error):
     if isinstance(error, commands.MissingPermissions):
-        await ctx.reply("❌ Seuls les administrateurs peuvent réinitialiser les points.")
+        await ctx.send("❌ Seuls les administrateurs peuvent réinitialiser les points.")
 
 keep_alive()
 
