@@ -599,6 +599,10 @@ async def point_error(ctx, error):
 # Commande pour voir le classement des points
 @bot.command(name="classement")
 async def classement(ctx):
+    # Éviter les réponses en double
+    if ctx.message.author.bot:
+        return
+        
     try:
         # Récupérer le classement
         leaderboard_data = get_leaderboard()
@@ -616,7 +620,7 @@ async def classement(ctx):
         # Créer le classement
         for index, entry in enumerate(leaderboard_data, 1):
             user_id = entry['user_id']
-            points = entry['points']  # Utiliser 'points' au lieu de 'total_points'
+            points = entry['points']
             
             # Récupérer le nom d'utilisateur
             if user_id not in users_cache:
