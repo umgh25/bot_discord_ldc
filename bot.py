@@ -548,15 +548,8 @@ async def modifier_vote(ctx, match_id: int = None, *, team: str = None):
 
 # Commande pour attribuer des points
 @bot.command(name="point")
-@commands.has_permissions(administrator=True)
+@commands.max_concurrency(1, per=commands.BucketType.user)  # Limite à une exécution à la fois par utilisateur
 async def point(ctx, member: discord.Member = None, match_id: int = None, point_value: int = None):
-    # Vérifier si l'utilisateur a une attribution de points en cours
-    user_id = str(member.id) if member else None
-    if user_id in point_locks:
-        await ctx.send("⚠️ Une attribution de points est déjà en cours pour cet utilisateur.")
-        return
-        
-    point_locks[user_id] = True
     try:
         if None in (member, match_id, point_value):
             await ctx.send("❌ Format incorrect. Utilisez `!point @utilisateur 1 1`")
@@ -570,9 +563,7 @@ async def point(ctx, member: discord.Member = None, match_id: int = None, point_
             await ctx.send("❌ Les points doivent être 1 (victoire) ou -1 (absence)")
             return
 
-        # Attendre un court instant pour éviter les doublons
-        await asyncio.sleep(0.5)
-        
+        user_id = str(member.id)
         success = add_points(user_id, match_id, point_value)
         
         if not success:
@@ -589,15 +580,13 @@ async def point(ctx, member: discord.Member = None, match_id: int = None, point_
         message += f"└─ Match : **{team1}** vs **{team2}**\n"
         message += f"└─ Points : **{point_value}**"
         
-        await ctx.send(message)
+        await ctx.reply(message)  # Utiliser reply au lieu de send
         
+    except commands.MaxConcurrencyReached:
+        await ctx.send("⚠️ Une commande est déjà en cours pour cet utilisateur.")
     except Exception as e:
         print(f"Erreur dans la commande point: {str(e)}")
         await ctx.send("❌ Une erreur s'est produite lors de l'attribution des points.")
-    finally:
-        # Toujours libérer le verrou
-        if user_id in point_locks:
-            del point_locks[user_id]
 
 @point.error
 async def point_error(ctx, error):
