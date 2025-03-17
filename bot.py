@@ -69,98 +69,61 @@ votes = charger_votes()
 # Charger les points au démarrage
 points = charger_points()
 
-# Définir tous les intents nécessaires
+# Configuration des intents
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
-class ChampionsBot(commands.Bot):
+# Création du client
+class ChampionsBot(discord.Client):
     def __init__(self):
-        super().__init__(command_prefix="!", intents=intents)
-
-    async def setup_hook(self):
-        print("Début de la synchronisation des commandes...")
-        try:
-            synced = await self.tree.sync()
-            print(f"Commandes synchronisées ! {len(synced)} commandes synchronisées")
-            for cmd in synced:
-                print(f"- /{cmd.name}")
-        except Exception as e:
-            print(f"Erreur lors de la synchronisation : {e}")
-
-    async def on_ready(self):
-        print(f'Bot {self.user} connecté !')
-        print(f'ID du bot : {self.user.id}')
-        await self.setup_hook()
+        super().__init__(intents=intents)
+        self.tree = app_commands.CommandTree(self)
 
 client = ChampionsBot()
 
+@client.event
+async def on_ready():
+    print(f'Bot connecté en tant que {client.user}')
+    try:
+        print("Synchronisation des commandes...")
+        await client.tree.sync()
+        print("Commandes synchronisées avec succès!")
+    except Exception as e:
+        print(f"Erreur lors de la synchronisation: {e}")
+
 @client.tree.command(
     name="classement",
-    description="Voir le classement général des points de la Champions League"
+    description="Affiche le classement des points"
 )
 async def classement(interaction: discord.Interaction):
     print(f"Commande classement appelée par {interaction.user}")
     try:
-        # Récupérer le classement
         leaderboard_data = get_leaderboard()
         
         if not leaderboard_data:
             await interaction.response.send_message("❌ Aucun point n'a encore été attribué.")
             return
         
-        # Créer le message de classement
         message = "**🏆 CLASSEMENT GÉNÉRAL 🏆**\n\n"
         
-        # Cache pour stocker les noms d'utilisateurs
-        users_cache = {}
-        
-        # Créer le classement
         for index, entry in enumerate(leaderboard_data, 1):
             user_id = entry['user_id']
             points = entry['points']
             
-            # Récupérer le nom d'utilisateur
-            if user_id not in users_cache:
-                try:
-                    user = await client.fetch_user(int(user_id))
-                    users_cache[user_id] = user.name
-                except:
-                    users_cache[user_id] = f"Utilisateur_{user_id}"
+            try:
+                user = await client.fetch_user(int(user_id))
+                username = user.name
+            except:
+                username = f"Utilisateur_{user_id}"
             
-            username = users_cache[user_id]
-            
-            # Ajouter les médailles pour le top 3
-            if index == 1:
-                medal = "🥇"
-            elif index == 2:
-                medal = "🥈"
-            elif index == 3:
-                medal = "🥉"
-            else:
-                medal = "👤"
-            
+            medal = "🥇" if index == 1 else "🥈" if index == 2 else "🥉" if index == 3 else "👤"
             message += f"{medal} **{username}** : {points} point(s)\n"
-        
-        # Ajouter une ligne de séparation
-        message += "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        
-        # Ajouter des statistiques
-        total_participants = len(leaderboard_data)
-        total_points = sum(entry['points'] for entry in leaderboard_data)
-        
-        message += f"\n📊 **Statistiques**\n"
-        message += f"└─ Participants : **{total_participants}**\n"
-        message += f"└─ Total des points : **{total_points}**\n"
-        
-        if total_participants > 0:
-            avg_points = total_points / total_participants
-            message += f"└─ Moyenne : **{avg_points:.1f}** points par participant"
         
         await interaction.response.send_message(message)
         
     except Exception as e:
-        print(f"Erreur dans la commande classement: {str(e)}")
+        print(f"Erreur dans la commande classement: {e}")
         await interaction.response.send_message(
             "❌ Une erreur s'est produite lors de la récupération du classement.",
             ephemeral=True
