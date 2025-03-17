@@ -129,48 +129,36 @@ async def classement(interaction: discord.Interaction):
             ephemeral=True
         )
 
-# Commande d'aide pour le vote
-@client.command(name="help_vote")
-async def help_vote(ctx):
+@client.tree.command(
+    name="help_vote",
+    description="Affiche l'aide pour les votes"
+)
+async def help_vote(interaction: discord.Interaction):
     help_message = """**🎮 GUIDE DES COMMANDES 🎮**
 
 **📝 Commandes principales :**
-`!vote <numéro du match> <nom de l'équipe>`
+`/vote <numéro du match> <nom de l'équipe>`
 └─ Pour voter pour une équipe
-└─ Exemple : `!vote 1 Club Bruges`
+└─ Exemple : `/vote 1 Club Bruges`
 
-`!modifier_vote <numéro du match> <nom de l'équipe>`
+`/modifier_vote <numéro du match> <nom de l'équipe>`
 └─ Pour modifier un vote existant
-└─ Exemple : `!modifier_vote 1 Aston Villa`
+└─ Exemple : `/modifier_vote 1 Aston Villa`
 
-`!supprimer_vote <numéro du match>`
+`/supprimer_vote <numéro du match>`
 └─ Pour supprimer un de vos votes
-└─ Exemple : `!supprimer_vote 1`
+└─ Exemple : `/supprimer_vote 1`
 
 **📊 Commandes de consultation :**
-`!recap`
+`/recap`
 └─ Voir tous vos votes
 
-`!voir_votes @utilisateur`
+`/voir_votes @utilisateur`
 └─ Voir les votes d'un autre utilisateur
-└─ Exemple : `!voir_votes @Pierre`
+└─ Exemple : `/voir_votes @Pierre`
 
-`!all_votes`
-└─ Voir les statistiques globales et tous les votes
-
-**🏆 Commandes de points (Administrateurs) :**
-`!point @utilisateur <numéro du match> <points>`
-└─ Attribuer des points à un utilisateur
-└─ Points : 1 = victoire, -1 = absence
-└─ Exemple : `!point @Pierre 1 1`
-
-`!reset_points @utilisateur`
-└─ Réinitialiser les points d'un utilisateur
-└─ Sans mention = réinitialise tous les points
-
-`!classement`
+`/classement`
 └─ Voir le classement général des points
-└─ Affiche le top 3 avec médailles 🥇🥈🥉
 
 **📋 Liste des matchs disponibles :**"""
 
@@ -179,13 +167,7 @@ async def help_vote(ctx):
         team1, team2 = match
         help_message += f"\n**Match {match_id}** : {team1} vs {team2}"
 
-    help_message += "\n\n**⚠️ Rappels importants :**"
-    help_message += "\n• Vous pouvez modifier vos votes à tout moment avant le début du match"
-    help_message += "\n• Les votes non effectués avant le début du match entraînent une pénalité de -1 point"
-    help_message += "\n• Utilisez les noms exacts des équipes (la casse n'est pas importante)"
-    help_message += "\n• Seuls les administrateurs peuvent attribuer ou réinitialiser les points"
-
-    await ctx.send(help_message)
+    await interaction.response.send_message(help_message)
 
 # Ajouter en haut du fichier
 vote_locks = {}
@@ -207,7 +189,7 @@ async def vote(ctx, match_id: int = None, *, team: str = None):
         
         # Vérifications habituelles...
         if match_id is None or team is None:
-            await ctx.send("❌ Format incorrect. Utilisez `!vote <numéro du match> <nom de l'équipe>`")
+            await ctx.send("❌ Format incorrect. Utilisez `/vote <numéro du match> <nom de l'équipe>`")
             return
         
         if match_id not in matches:
@@ -368,7 +350,7 @@ async def recap(ctx):
         
         if matches_restants > 0:
             recap_message += f"- Matches restants à voter : **{matches_restants}**\n"
-            recap_message += f"\n💡 Utilisez `!help_vote` pour voir la liste des matches disponibles."
+            recap_message += f"\n💡 Utilisez `/help_vote` pour voir la liste des matches disponibles."
         else:
             recap_message += f"\n✅ Vous avez voté pour tous les matches !"
 
@@ -483,7 +465,7 @@ async def all_votes(ctx):
 @client.command(name="voir_votes")
 async def voir_votes(ctx, member: discord.Member = None):
     if member is None:
-        await ctx.send("❌ Veuillez mentionner un utilisateur. Exemple : `!voir_votes @utilisateur`")
+        await ctx.send("❌ Veuillez mentionner un utilisateur. Exemple : `/voir_votes @utilisateur`")
         return
 
     user_id = str(member.id)
@@ -538,7 +520,7 @@ async def modifier_vote(ctx, match_id: int = None, *, team: str = None):
     try:
         # Vérifier si les paramètres sont fournis
         if match_id is None or team is None:
-            await ctx.send("❌ Format incorrect. Utilisez `!modifier_vote <numéro du match> <nom de l'équipe>`")
+            await ctx.send("❌ Format incorrect. Utilisez `/modifier_vote <numéro du match> <nom de l'équipe>`")
             return
 
         # Vérifier si le match existe
@@ -550,7 +532,7 @@ async def modifier_vote(ctx, match_id: int = None, *, team: str = None):
         result = supabase.table("votes").select("*").eq("user_id", user_id).eq("match_id", match_id).execute()
         
         if not result.data:
-            await ctx.send(f"❌ Vous n'avez pas encore voté pour le match {match_id}. Utilisez `!vote` pour voter.")
+            await ctx.send(f"❌ Vous n'avez pas encore voté pour le match {match_id}. Utilisez `/vote` pour voter.")
             return
 
         team1, team2 = matches[match_id]
@@ -588,7 +570,7 @@ async def modifier_vote(ctx, match_id: int = None, *, team: str = None):
 async def point(ctx, member: discord.Member = None, match_id: int = None, point_value: int = None):
     try:
         if None in (member, match_id, point_value):
-            await ctx.send("❌ Format incorrect. Utilisez `!point @utilisateur 1 1`")
+            await ctx.send("❌ Format incorrect. Utilisez `/point @utilisateur 1 1`")
             return
 
         if match_id not in matches:
