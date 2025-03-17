@@ -603,18 +603,21 @@ class ChampionsBot(discord.Client):
         self.tree = app_commands.CommandTree(self)
 
     async def setup_hook(self):
+        print("Synchronisation des commandes...")
         await self.tree.sync()
+        print("Commandes synchronisées!")
 
+# Créer l'instance du bot
 client = ChampionsBot()
 tree = client.tree
 
-# Nouvelle commande slash pour le classement (remplace l'ancienne)
 @tree.command(
     name="classement",
     description="Voir le classement général des points de la Champions League"
 )
 async def classement(interaction: discord.Interaction):
     try:
+        print("Commande classement appelée")
         # Récupérer le classement
         leaderboard_data = get_leaderboard()
         
@@ -741,5 +744,5 @@ async def reset_points_error(ctx, error):
 keep_alive()
 
 # Lancement du bot avec le token
-bot.run(TOKEN)
+client.run(TOKEN)
 
