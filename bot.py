@@ -594,15 +594,32 @@ async def point_error(ctx, error):
     if isinstance(error, commands.MissingPermissions):
         await ctx.send("❌ Seuls les administrateurs peuvent attribuer des points.")
 
-# Commande pour voir le classement des points
-@bot.command(name="classement")
-async def classement(ctx):
+# Modifier votre initialisation du bot
+class ChampionsBot(discord.Client):
+    def __init__(self):
+        intents = discord.Intents.default()
+        intents.message_content = True
+        super().__init__(intents=intents)
+        self.tree = app_commands.CommandTree(self)
+
+    async def setup_hook(self):
+        await self.tree.sync()
+
+client = ChampionsBot()
+tree = client.tree
+
+# Nouvelle commande slash pour le classement (remplace l'ancienne)
+@tree.command(
+    name="classement",
+    description="Voir le classement général des points de la Champions League"
+)
+async def classement(interaction: discord.Interaction):
     try:
         # Récupérer le classement
         leaderboard_data = get_leaderboard()
         
         if not leaderboard_data:
-            await ctx.send("❌ Aucun point n'a encore été attribué.")
+            await interaction.response.send_message("❌ Aucun point n'a encore été attribué.")
             return
         
         # Créer le message de classement
@@ -619,7 +636,7 @@ async def classement(ctx):
             # Récupérer le nom d'utilisateur
             if user_id not in users_cache:
                 try:
-                    user = await bot.fetch_user(int(user_id))
+                    user = await client.fetch_user(int(user_id))
                     users_cache[user_id] = user.name
                 except:
                     users_cache[user_id] = f"Utilisateur_{user_id}"
@@ -653,11 +670,15 @@ async def classement(ctx):
             avg_points = total_points / total_participants
             message += f"└─ Moyenne : **{avg_points:.1f}** points par participant"
         
-        await ctx.send(message)
+        # Envoyer le message avec la nouvelle interface
+        await interaction.response.send_message(message)
         
     except Exception as e:
         print(f"Erreur dans la commande classement: {str(e)}")
-        await ctx.send("❌ Une erreur s'est produite lors de la récupération du classement.")
+        await interaction.response.send_message(
+            "❌ Une erreur s'est produite lors de la récupération du classement.",
+            ephemeral=True
+        )
 
 # Commande pour réinitialiser les points
 @bot.command(name="reset_points")
@@ -721,90 +742,4 @@ keep_alive()
 
 # Lancement du bot avec le token
 bot.run(TOKEN)
-
-# Modifier votre initialisation du bot
-class ChampionsBot(discord.Client):
-    def __init__(self):
-        intents = discord.Intents.default()
-        intents.message_content = True
-        super().__init__(intents=intents)
-        self.tree = app_commands.CommandTree(self)
-
-    async def setup_hook(self):
-        await self.tree.sync()
-
-client = ChampionsBot()
-tree = client.tree
-
-# Nouvelle commande slash pour le classement
-@tree.command(
-    name="classement",
-    description="Voir le classement général des points de la Champions League"
-)
-async def slash_classement(interaction: discord.Interaction):
-    try:
-        # Récupérer le classement
-        leaderboard_data = get_leaderboard()
-        
-        if not leaderboard_data:
-            await interaction.response.send_message("❌ Aucun point n'a encore été attribué.")
-            return
-        
-        # Créer le message de classement
-        message = "**🏆 CLASSEMENT GÉNÉRAL 🏆**\n\n"
-        
-        # Cache pour stocker les noms d'utilisateurs
-        users_cache = {}
-        
-        # Créer le classement
-        for index, entry in enumerate(leaderboard_data, 1):
-            user_id = entry['user_id']
-            points = entry['points']
-            
-            # Récupérer le nom d'utilisateur
-            if user_id not in users_cache:
-                try:
-                    user = await client.fetch_user(int(user_id))
-                    users_cache[user_id] = user.name
-                except:
-                    users_cache[user_id] = f"Utilisateur_{user_id}"
-            
-            username = users_cache[user_id]
-            
-            # Ajouter les médailles pour le top 3
-            if index == 1:
-                medal = "🥇"
-            elif index == 2:
-                medal = "🥈"
-            elif index == 3:
-                medal = "🥉"
-            else:
-                medal = "👤"
-            
-            message += f"{medal} **{username}** : {points} point(s)\n"
-        
-        # Ajouter une ligne de séparation
-        message += "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        
-        # Ajouter des statistiques
-        total_participants = len(leaderboard_data)
-        total_points = sum(entry['points'] for entry in leaderboard_data)
-        
-        message += f"\n📊 **Statistiques**\n"
-        message += f"└─ Participants : **{total_participants}**\n"
-        message += f"└─ Total des points : **{total_points}**\n"
-        
-        if total_participants > 0:
-            avg_points = total_points / total_participants
-            message += f"└─ Moyenne : **{avg_points:.1f}** points par participant"
-        
-        # Envoyer le message avec la nouvelle interface
-        await interaction.response.send_message(message)
-        
-    except Exception as e:
-        print(f"Erreur dans la commande slash_classement: {str(e)}")
-        await interaction.response.send_message(
-            "❌ Une erreur s'est produite lors de la récupération du classement.",
-            ephemeral=True  # Message d'erreur visible uniquement par l'utilisateur
-        )
 
