@@ -74,14 +74,13 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
-class ChampionsBot(discord.Client):
+class ChampionsBot(commands.Bot):
     def __init__(self):
-        super().__init__(intents=intents)
+        super().__init__(command_prefix="!", intents=intents)
         self.tree = app_commands.CommandTree(self)
 
     async def setup_hook(self):
         print("Début de la synchronisation des commandes...")
-        # Synchroniser les commandes avec Discord
         try:
             synced = await self.tree.sync()
             print(f"Commandes synchronisées ! {len(synced)} commandes synchronisées")
@@ -93,16 +92,14 @@ class ChampionsBot(discord.Client):
     async def on_ready(self):
         print(f'Bot {self.user} connecté !')
         print(f'ID du bot : {self.user.id}')
-        await self.setup_hook()  # Forcer la synchronisation au démarrage
+        await self.setup_hook()
 
 client = ChampionsBot()
-tree = client.tree
 
-@tree.command(
+@client.tree.command(
     name="classement",
     description="Voir le classement général des points de la Champions League"
 )
-@app_commands.guild_only()  # Restreindre aux serveurs uniquement
 async def classement(interaction: discord.Interaction):
     print(f"Commande classement appelée par {interaction.user}")
     try:
@@ -161,7 +158,6 @@ async def classement(interaction: discord.Interaction):
             avg_points = total_points / total_participants
             message += f"└─ Moyenne : **{avg_points:.1f}** points par participant"
         
-        # Envoyer le message avec la nouvelle interface
         await interaction.response.send_message(message)
         
     except Exception as e:
