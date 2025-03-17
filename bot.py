@@ -69,33 +69,110 @@ votes = charger_votes()
 # Charger les points au démarrage
 points = charger_points()
 
-# Créer les intents nécessaires
+# Définir tous les intents nécessaires
 intents = discord.Intents.default()
-# Pour pouvoir lire le contenu des messages (important pour les commandes)
 intents.message_content = True
+intents.members = True
 
-# Créer l'instance du bot avec les intents
-bot = commands.Bot(command_prefix="!", intents=intents)
+class ChampionsBot(discord.Client):
+    def __init__(self):
+        super().__init__(intents=intents)
+        self.tree = app_commands.CommandTree(self)
 
-# Liste des matchs
-matches = {
-    1: ("Club Bruges", "Aston Villa"),
-    2: ("Real Madrid", "Atlético Madrid"),
-    3: ("PSV Eindhoven", "Arsenal"),
-    4: ("Borussia Dortmund", "Lille"),
-    5: ("Feyenoord", "Inter Milan"),
-    6: ("Benfica", "FC Barcelone"),
-    7: ("Bayern Munich", "Bayer Leverkusen"),
-    8: ("Paris Saint-Germain", "Liverpool")
-}
+    async def setup_hook(self):
+        print("Début de la synchronisation des commandes...")
+        # Synchroniser les commandes avec Discord
+        try:
+            synced = await self.tree.sync()
+            print(f"Commandes synchronisées ! {len(synced)} commandes synchronisées")
+            for cmd in synced:
+                print(f"- /{cmd.name}")
+        except Exception as e:
+            print(f"Erreur lors de la synchronisation : {e}")
 
-# Événement quand le bot est prêt
-@bot.event
-async def on_ready():
-    print(f'{bot.user} est connecté et prêt !')
+    async def on_ready(self):
+        print(f'Bot {self.user} connecté !')
+        print(f'ID du bot : {self.user.id}')
+        await self.setup_hook()  # Forcer la synchronisation au démarrage
+
+client = ChampionsBot()
+tree = client.tree
+
+@tree.command(
+    name="classement",
+    description="Voir le classement général des points de la Champions League"
+)
+@app_commands.guild_only()  # Restreindre aux serveurs uniquement
+async def classement(interaction: discord.Interaction):
+    print(f"Commande classement appelée par {interaction.user}")
+    try:
+        # Récupérer le classement
+        leaderboard_data = get_leaderboard()
+        
+        if not leaderboard_data:
+            await interaction.response.send_message("❌ Aucun point n'a encore été attribué.")
+            return
+        
+        # Créer le message de classement
+        message = "**🏆 CLASSEMENT GÉNÉRAL 🏆**\n\n"
+        
+        # Cache pour stocker les noms d'utilisateurs
+        users_cache = {}
+        
+        # Créer le classement
+        for index, entry in enumerate(leaderboard_data, 1):
+            user_id = entry['user_id']
+            points = entry['points']
+            
+            # Récupérer le nom d'utilisateur
+            if user_id not in users_cache:
+                try:
+                    user = await client.fetch_user(int(user_id))
+                    users_cache[user_id] = user.name
+                except:
+                    users_cache[user_id] = f"Utilisateur_{user_id}"
+            
+            username = users_cache[user_id]
+            
+            # Ajouter les médailles pour le top 3
+            if index == 1:
+                medal = "🥇"
+            elif index == 2:
+                medal = "🥈"
+            elif index == 3:
+                medal = "🥉"
+            else:
+                medal = "👤"
+            
+            message += f"{medal} **{username}** : {points} point(s)\n"
+        
+        # Ajouter une ligne de séparation
+        message += "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        
+        # Ajouter des statistiques
+        total_participants = len(leaderboard_data)
+        total_points = sum(entry['points'] for entry in leaderboard_data)
+        
+        message += f"\n📊 **Statistiques**\n"
+        message += f"└─ Participants : **{total_participants}**\n"
+        message += f"└─ Total des points : **{total_points}**\n"
+        
+        if total_participants > 0:
+            avg_points = total_points / total_participants
+            message += f"└─ Moyenne : **{avg_points:.1f}** points par participant"
+        
+        # Envoyer le message avec la nouvelle interface
+        await interaction.response.send_message(message)
+        
+    except Exception as e:
+        print(f"Erreur dans la commande classement: {str(e)}")
+        await interaction.response.send_message(
+            "❌ Une erreur s'est produite lors de la récupération du classement.",
+            ephemeral=True
+        )
 
 # Commande d'aide pour le vote
-@bot.command(name="help_vote")
+@client.command(name="help_vote")
 async def help_vote(ctx):
     help_message = """**🎮 GUIDE DES COMMANDES 🎮**
 
@@ -156,7 +233,7 @@ async def help_vote(ctx):
 vote_locks = {}
 point_locks = {}
 
-@bot.command()
+@client.command()
 async def vote(ctx, match_id: int = None, *, team: str = None):
     # Vérifier si l'utilisateur a un vote en cours
     user_id = str(ctx.author.id)
@@ -211,7 +288,7 @@ async def vote(ctx, match_id: int = None, *, team: str = None):
 # Commande !supprimer_vote
 
 
-@bot.command(name="supprimer_vote")
+@client.command(name="supprimer_vote")
 async def supprimer_vote(ctx, match_id: int):
     user_id = str(ctx.author.id)
     
@@ -240,7 +317,7 @@ async def supprimer_vote(ctx, match_id: int):
 # Commande !programme (Annonce du quiz)
 
 
-@bot.command()
+@client.command()
 async def programme(ctx):
     message = """**Oyé, Oyé,
 ⚽ La Ligue des Champions reprend demain avec les huitièmes de finale ! ⚽
@@ -297,7 +374,7 @@ Pénalité : Chaque match non pronostiqué à temps entraîne une pénalité de 
     await ctx.send(message)
 
 # Commande pour voir le récapitulatif des votes
-@bot.command(name="recap")
+@client.command(name="recap")
 async def recap(ctx):
     user_id = str(ctx.author.id)
     
@@ -344,7 +421,7 @@ async def recap(ctx):
         await ctx.send(f"❌ Une erreur s'est produite lors de la récupération de vos votes.")
 
 # Commande pour voir le récapitulatif des votes
-@bot.command(name="all_votes")
+@client.command(name="all_votes")
 async def all_votes(ctx):
     try:
         # Récupérer tous les votes depuis Supabase
@@ -372,7 +449,7 @@ async def all_votes(ctx):
             # Récupérer le nom d'utilisateur si pas encore en cache
             if user_id not in users_cache:
                 try:
-                    user = await bot.fetch_user(int(user_id))
+                    user = await client.fetch_user(int(user_id))
                     users_cache[user_id] = user.name
                 except:
                     users_cache[user_id] = f"Utilisateur_{user_id}"
@@ -445,7 +522,7 @@ async def all_votes(ctx):
         await ctx.send(f"❌ Une erreur s'est produite lors de la récupération des votes.")
 
 # Commande pour voir les votes d'un utilisateur spécifique
-@bot.command(name="voir_votes")
+@client.command(name="voir_votes")
 async def voir_votes(ctx, member: discord.Member = None):
     if member is None:
         await ctx.send("❌ Veuillez mentionner un utilisateur. Exemple : `!voir_votes @utilisateur`")
@@ -496,7 +573,7 @@ async def voir_votes(ctx, member: discord.Member = None):
         await ctx.send(f"❌ Une erreur s'est produite lors de la récupération des votes.")
 
 # Commande pour modifier un vote existant
-@bot.command(name="modifier_vote")
+@client.command(name="modifier_vote")
 async def modifier_vote(ctx, match_id: int = None, *, team: str = None):
     user_id = str(ctx.author.id)
     
@@ -548,7 +625,7 @@ async def modifier_vote(ctx, match_id: int = None, *, team: str = None):
         await ctx.send(f"❌ Une erreur s'est produite lors de la modification du vote.")
 
 # Commande pour attribuer des points
-@bot.command(name="point")
+@client.command(name="point")
 @commands.max_concurrency(1, per=commands.BucketType.user)  # Limite à une exécution à la fois par utilisateur
 async def point(ctx, member: discord.Member = None, match_id: int = None, point_value: int = None):
     try:
@@ -594,97 +671,8 @@ async def point_error(ctx, error):
     if isinstance(error, commands.MissingPermissions):
         await ctx.send("❌ Seuls les administrateurs peuvent attribuer des points.")
 
-# Modifier votre initialisation du bot
-class ChampionsBot(discord.Client):
-    def __init__(self):
-        intents = discord.Intents.default()
-        intents.message_content = True
-        super().__init__(intents=intents)
-        self.tree = app_commands.CommandTree(self)
-
-    async def setup_hook(self):
-        print("Synchronisation des commandes...")
-        await self.tree.sync()
-        print("Commandes synchronisées!")
-
-# Créer l'instance du bot
-client = ChampionsBot()
-tree = client.tree
-
-@tree.command(
-    name="classement",
-    description="Voir le classement général des points de la Champions League"
-)
-async def classement(interaction: discord.Interaction):
-    try:
-        print("Commande classement appelée")
-        # Récupérer le classement
-        leaderboard_data = get_leaderboard()
-        
-        if not leaderboard_data:
-            await interaction.response.send_message("❌ Aucun point n'a encore été attribué.")
-            return
-        
-        # Créer le message de classement
-        message = "**🏆 CLASSEMENT GÉNÉRAL 🏆**\n\n"
-        
-        # Cache pour stocker les noms d'utilisateurs
-        users_cache = {}
-        
-        # Créer le classement
-        for index, entry in enumerate(leaderboard_data, 1):
-            user_id = entry['user_id']
-            points = entry['points']
-            
-            # Récupérer le nom d'utilisateur
-            if user_id not in users_cache:
-                try:
-                    user = await client.fetch_user(int(user_id))
-                    users_cache[user_id] = user.name
-                except:
-                    users_cache[user_id] = f"Utilisateur_{user_id}"
-            
-            username = users_cache[user_id]
-            
-            # Ajouter les médailles pour le top 3
-            if index == 1:
-                medal = "🥇"
-            elif index == 2:
-                medal = "🥈"
-            elif index == 3:
-                medal = "🥉"
-            else:
-                medal = "👤"
-            
-            message += f"{medal} **{username}** : {points} point(s)\n"
-        
-        # Ajouter une ligne de séparation
-        message += "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        
-        # Ajouter des statistiques
-        total_participants = len(leaderboard_data)
-        total_points = sum(entry['points'] for entry in leaderboard_data)
-        
-        message += f"\n📊 **Statistiques**\n"
-        message += f"└─ Participants : **{total_participants}**\n"
-        message += f"└─ Total des points : **{total_points}**\n"
-        
-        if total_participants > 0:
-            avg_points = total_points / total_participants
-            message += f"└─ Moyenne : **{avg_points:.1f}** points par participant"
-        
-        # Envoyer le message avec la nouvelle interface
-        await interaction.response.send_message(message)
-        
-    except Exception as e:
-        print(f"Erreur dans la commande classement: {str(e)}")
-        await interaction.response.send_message(
-            "❌ Une erreur s'est produite lors de la récupération du classement.",
-            ephemeral=True
-        )
-
 # Commande pour réinitialiser les points
-@bot.command(name="reset_points")
+@client.command(name="reset_points")
 @commands.has_permissions(administrator=True)
 async def reset_points_cmd(ctx, member: discord.Member = None):
     try:
@@ -702,7 +690,7 @@ async def reset_points_cmd(ctx, member: discord.Member = None):
                 return user == ctx.author and str(reaction.emoji) in ["✅", "❌"]
             
             try:
-                reaction, user = await bot.wait_for('reaction_add', timeout=30.0, check=check)
+                reaction, user = await client.wait_for('reaction_add', timeout=30.0, check=check)
                 
                 if str(reaction.emoji) == "✅":
                     success, count = reset_points()
@@ -743,6 +731,8 @@ async def reset_points_error(ctx, error):
 
 keep_alive()
 
-# Lancement du bot avec le token
-client.run(TOKEN)
+# À la fin du fichier
+if __name__ == "__main__":
+    print("Démarrage du bot...")
+    client.run(TOKEN)
 
