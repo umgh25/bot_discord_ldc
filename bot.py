@@ -77,7 +77,6 @@ intents.members = True
 class ChampionsBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix="!", intents=intents)
-        self.tree = app_commands.CommandTree(self)
 
     async def setup_hook(self):
         print("Début de la synchronisation des commandes...")
