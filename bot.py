@@ -4,6 +4,7 @@ from database import *  # Importe toutes les fonctions de database.py
 import os
 from dotenv import load_dotenv
 from pathlib import Path
+from keep_alive import keep_alive  # Ajout de cette ligne
 
 # Charger les variables d'environnement
 env_path = Path('.') / '.env'
@@ -125,5 +126,6 @@ async def help_vote(interaction: discord.Interaction):
 # Lancement du bot
 if __name__ == "__main__":
     print("Démarrage du bot...")
+    keep_alive()  # Ajout de cette ligne
     client.run(TOKEN)
 
