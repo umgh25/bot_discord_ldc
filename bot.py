@@ -92,6 +92,11 @@ matches = {
 @bot.event
 async def on_ready():
     print(f'{bot.user} est connecté et prêt !')
+    try:
+        synced = await bot.tree.sync()
+        print(f"Slash commands synchronisées : {len(synced)}")
+    except Exception as e:
+        print(f"Erreur lors de la synchronisation des slash commands : {e}")
 
 # Commande d'aide pour le vote
 @bot.command(name="help_vote")
@@ -593,28 +598,28 @@ async def point_error(ctx, error):
     if isinstance(error, commands.MissingPermissions):
         await ctx.send("❌ Seuls les administrateurs peuvent attribuer des points.")
 
-# Commande pour voir le classement des points
-@bot.command(name="classement")
-async def classement(ctx):
+# Commande de classement en slash command
+@bot.tree.command(name="classement", description="Affiche le classement des points.")
+async def classement(interaction: discord.Interaction):
     try:
         # Récupérer le classement
         leaderboard_data = get_leaderboard()
-        
+
         if not leaderboard_data:
-            await ctx.send("❌ Aucun point n'a encore été attribué.")
+            await interaction.response.send_message("❌ Aucun point n'a encore été attribué.", ephemeral=True)
             return
-        
+
         # Créer le message de classement
         message = "**🏆 CLASSEMENT GÉNÉRAL 🏆**\n\n"
-        
+
         # Cache pour stocker les noms d'utilisateurs
         users_cache = {}
-        
-        # Créer le classement
+
+        # Construire le classement
         for index, entry in enumerate(leaderboard_data, 1):
-            user_id = entry['user_id']
-            points = entry['points']  # Utiliser 'points' au lieu de 'total_points'
-            
+            user_id = entry["user_id"]
+            points = entry["points"]
+
             # Récupérer le nom d'utilisateur
             if user_id not in users_cache:
                 try:
@@ -622,41 +627,33 @@ async def classement(ctx):
                     users_cache[user_id] = user.name
                 except:
                     users_cache[user_id] = f"Utilisateur_{user_id}"
-            
+
             username = users_cache[user_id]
-            
+
             # Ajouter les médailles pour le top 3
-            if index == 1:
-                medal = "🥇"
-            elif index == 2:
-                medal = "🥈"
-            elif index == 3:
-                medal = "🥉"
-            else:
-                medal = "👤"
-            
+            medal = "🥇" if index == 1 else "🥈" if index == 2 else "🥉" if index == 3 else "👤"
             message += f"{medal} **{username}** : {points} point(s)\n"
-        
+
         # Ajouter une ligne de séparation
         message += "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        
+
         # Ajouter des statistiques
         total_participants = len(leaderboard_data)
-        total_points = sum(entry['points'] for entry in leaderboard_data)
-        
+        total_points = sum(entry["points"] for entry in leaderboard_data)
+
         message += f"\n📊 **Statistiques**\n"
         message += f"└─ Participants : **{total_participants}**\n"
         message += f"└─ Total des points : **{total_points}**\n"
-        
+
         if total_participants > 0:
             avg_points = total_points / total_participants
             message += f"└─ Moyenne : **{avg_points:.1f}** points par participant"
-        
-        await ctx.send(message)
-        
+
+        await interaction.response.send_message(message)
+
     except Exception as e:
         print(f"Erreur dans la commande classement: {str(e)}")
-        await ctx.send("❌ Une erreur s'est produite lors de la récupération du classement.")
+        await interaction.response.send_message("❌ Une erreur s'est produite lors de la récupération du classement.", ephemeral=True)
 
 # Commande pour réinitialiser les points
 @bot.command(name="reset_points")
