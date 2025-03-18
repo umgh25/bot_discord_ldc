@@ -1,4 +1,5 @@
 from discord.ext import commands
+from database import add_points, reset_points
 
 class AdminCommands(commands.Cog):
     def __init__(self, bot):
@@ -13,8 +14,8 @@ class AdminCommands(commands.Cog):
                 await ctx.send("❌ Format incorrect. Utilisez `!point @utilisateur 1 1`")
                 return
 
-            if match_id not in matches:
-                await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont de 1 à {len(matches)}.")
+            if match_id not in self.bot.matches:
+                await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont de 1 à {len(self.bot.matches)}.")
                 return
 
             if point_value not in [-1, 1]:
@@ -28,7 +29,7 @@ class AdminCommands(commands.Cog):
                 await ctx.send("❌ Une erreur s'est produite lors de l'attribution des points.")
                 return
                 
-            team1, team2 = matches[match_id]
+            team1, team2 = self.bot.matches[match_id]
             
             if point_value > 0:
                 message = f"✅ {member.mention} a gagné **{point_value}** point pour le match {match_id} !\n"

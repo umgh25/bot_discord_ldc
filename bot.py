@@ -28,13 +28,6 @@ logger.info(f"Début du token : {TOKEN[:10]}... (pour vérification)")
 if not TOKEN:
     raise ValueError("Le token Discord n'est pas configuré")
 
-# Créer les intents nécessaires
-intents = discord.Intents.default()
-intents.message_content = True
-
-# Créer l'instance du bot avec les intents
-bot = commands.Bot(command_prefix="!", intents=intents)
-
 # Liste des matchs
 matches = {
     1: ("Club Bruges", "Aston Villa"),
@@ -49,6 +42,13 @@ matches = {
 
 # Verrous pour éviter les opérations simultanées
 vote_locks = {}
+
+# Créer les intents nécessaires
+intents = discord.Intents.default()
+intents.message_content = True
+
+# Créer l'instance du bot avec les intents
+bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
@@ -75,8 +75,19 @@ keep_alive()
 # Lancement du bot avec le token
 async def main():
     async with bot:
+        # Ajouter les matches comme attribut du bot
+        bot.matches = matches
         await setup_info_commands(bot, matches)
+        await load_extensions()
         await bot.start(TOKEN)
+
+async def load_extensions():
+    try:
+        await bot.load_extension("commands.info_commands")
+        await bot.load_extension("commands.admin_commands")
+        print("Extensions chargées avec succès")
+    except Exception as e:
+        print(f"Erreur lors du chargement des extensions: {e}")
 
 if __name__ == "__main__":
     asyncio.run(main())
