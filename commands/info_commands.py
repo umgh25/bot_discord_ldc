@@ -11,17 +11,22 @@ class InfoCommands(commands.Cog):
         
     @commands.command(name="help_vote")
     async def help_vote(self, ctx):
-        help_message = "**🎮 GUIDE DES COMMANDES 🎮**\n\n"
-        help_message += "**📝 Commandes principales :**\n"
-        help_message += "`!vote <numéro du match> <nom de l'équipe>`\n"
-        help_message += "└─ Pour voter pour une équipe\n"
-        help_message += "└─ Exemple : `!vote 1 Club Bruges`\n\n"
-        help_message += "`!modifier_vote <numéro du match> <nom de l'équipe>`\n"
-        help_message += "└─ Pour modifier un vote existant\n"
-        help_message += "└─ Exemple : `!modifier_vote 1 Aston Villa`\n"
-        help_message += "\n-----------------------------------\n"
+        help_message = [
+            "**🎮 GUIDE DES COMMANDES 🎮**",
+            "",
+            "**📝 Commandes principales :**",
+            "`!vote <numéro du match> <nom de l'équipe>`",
+            "└─ Pour voter pour une équipe",
+            "└─ Exemple : `!vote 1 Club Bruges`",
+            "",
+            "`!modifier_vote <numéro du match> <nom de l'équipe>`",
+            "└─ Pour modifier un vote existant",
+            "└─ Exemple : `!modifier_vote 1 Aston Villa`",
+            "",
+            "-----------------------------------"
+        ]
         
-        await ctx.send(help_message)
+        await ctx.send("\n".join(help_message))
 
 async def setup(bot):
     await bot.add_cog(InfoCommands(bot))

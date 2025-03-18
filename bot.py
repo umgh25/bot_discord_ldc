@@ -52,7 +52,7 @@ vote_locks = {}
 
 @bot.event
 async def on_ready():
-    logger.info(f'{bot.user} est connecté et prêt !')
+    print(f'{bot.user} est connecté et prêt !')
     try:
         # Synchroniser les commandes avec Discord
         synced = await bot.tree.sync()
@@ -73,4 +73,10 @@ setup_admin_commands(bot, matches)
 keep_alive()
 
 # Lancement du bot avec le token
-bot.run(TOKEN)
+async def main():
+    async with bot:
+        await setup_info_commands(bot, matches)
+        await bot.start(TOKEN)
+
+if __name__ == "__main__":
+    asyncio.run(main())
