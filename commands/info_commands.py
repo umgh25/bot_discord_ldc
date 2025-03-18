@@ -1,8 +1,34 @@
 import discord
 from discord import app_commands
 import logging
+from discord.ext import commands
 
 logger = logging.getLogger(__name__)
+
+class InfoCommands(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+        
+    @commands.command(name="help_vote")
+    async def help_vote(self, ctx):
+        help_message = """**🎮 GUIDE DES COMMANDES 🎮**
+
+**📝 Commandes principales :**
+`!vote <numéro du match> <nom de l'équipe>`
+└─ Pour voter pour une équipe
+└─ Exemple : `!vote 1 Club Bruges`
+
+`!modifier_vote <numéro du match> <nom de l'équipe>`
+└─ Pour modifier un vote existant
+└─ Exemple : `!modifier_vote 1 Aston Villa`"""
+
+        message = help_message
+        message += "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        
+        await ctx.send(message)
+
+async def setup(bot):
+    await bot.add_cog(InfoCommands(bot))
 
 def setup(bot, matches):
     """Configure les commandes d'information pour le bot"""
