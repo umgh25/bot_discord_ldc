@@ -23,7 +23,7 @@ class InfoCommands(commands.Cog):
 └─ Exemple : `!modifier_vote 1 Aston Villa`"""
 
         message = help_message
-        message += "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        message += "\n-----------------------------------\n"  # Ligne de séparation simplifiée
         
         await ctx.send(message)
 
