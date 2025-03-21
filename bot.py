@@ -102,6 +102,9 @@ async def on_ready():
 @bot.tree.command(name="help_vote", description="Affiche l'aide pour les votes")
 async def help_vote(interaction: discord.Interaction):
     try:
+        # Différer la réponse pour éviter le timeout
+        await interaction.response.defer(ephemeral=False)
+        
         help_message = [
             "**🎮 GUIDE DES COMMANDES 🎮**",
             "",
@@ -123,15 +126,22 @@ async def help_vote(interaction: discord.Interaction):
         
         help_message.append("\n-----------------")
         
-        # Envoyer le message visible par tous (ephemeral=False)
-        await interaction.response.send_message("\n".join(help_message), ephemeral=False)
+        # Envoyer le message complet
+        await interaction.followup.send("\n".join(help_message))
         
     except Exception as e:
         print(f"Erreur dans la commande help_vote: {str(e)}")
-        await interaction.response.send_message(
-            "❌ Une erreur s'est produite lors de l'affichage de l'aide.",
-            ephemeral=True  # Les messages d'erreur restent privés
-        )
+        try:
+            await interaction.followup.send(
+                "❌ Une erreur s'est produite lors de l'affichage de l'aide.",
+                ephemeral=True
+            )
+        except:
+            # Si la réponse initiale n'a pas été différée
+            await interaction.response.send_message(
+                "❌ Une erreur s'est produite lors de l'affichage de l'aide.",
+                ephemeral=True
+            )
 
 # Ajouter en haut du fichier
 vote_locks = {}
