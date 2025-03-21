@@ -98,50 +98,63 @@ async def on_ready():
     except Exception as e:
         print(f"Erreur lors de la synchronisation des slash commands : {e}")
 
-# Commande Slash pour l'aide sur le vote
-@bot.tree.command(name="help_vote", description="Affiche l'aide pour les votes")
-async def help_vote(interaction: discord.Interaction):
-    try:
-        # Différer la réponse pour éviter le timeout
-        await interaction.response.defer(ephemeral=False)
-        
-        help_message = [
-            "**🎮 GUIDE DES COMMANDES 🎮**",
-            "",
-            "**📝 Commandes principales :**",
-            "`!vote <numéro du match> <nom de l'équipe>`",
-            "└─ Pour voter pour une équipe",
-            "└─ Exemple : `!vote 1 Club Bruges`",
-            "",
-            "`!modifier_vote <numéro du match> <nom de l'équipe>`",
-            "└─ Pour modifier un vote existant",
-            "└─ Exemple : `!modifier_vote 1 Aston Villa`",
-            "",
-            "**📋 Liste des matchs disponibles :**"
-        ]
-        
-        # Ajouter la liste des matchs
-        for match_id, (team1, team2) in bot.matches.items():
-            help_message.append(f"**Match {match_id}** : {team1} vs {team2}")
-        
-        help_message.append("\n-----------------")
-        
-        # Envoyer le message complet
-        await interaction.followup.send("\n".join(help_message))
-        
-    except Exception as e:
-        print(f"Erreur dans la commande help_vote: {str(e)}")
-        try:
-            await interaction.followup.send(
-                "❌ Une erreur s'est produite lors de l'affichage de l'aide.",
-                ephemeral=True
-            )
-        except:
-            # Si la réponse initiale n'a pas été différée
-            await interaction.response.send_message(
-                "❌ Une erreur s'est produite lors de l'affichage de l'aide.",
-                ephemeral=True
-            )
+# Commande d'aide pour le vote
+@bot.command(name="help_vote")
+async def help_vote(ctx):
+    help_message = """**🎮 GUIDE DES COMMANDES 🎮**
+
+**📝 Commandes principales :**
+`!vote <numéro du match> <nom de l'équipe>`
+└─ Pour voter pour une équipe
+└─ Exemple : `!vote 1 Club Bruges`
+
+`!modifier_vote <numéro du match> <nom de l'équipe>`
+└─ Pour modifier un vote existant
+└─ Exemple : `!modifier_vote 1 Aston Villa`
+
+`!supprimer_vote <numéro du match>`
+└─ Pour supprimer un de vos votes
+└─ Exemple : `!supprimer_vote 1`
+
+**📊 Commandes de consultation :**
+`!recap`
+└─ Voir tous vos votes
+
+`!voir_votes @utilisateur`
+└─ Voir les votes d'un autre utilisateur
+└─ Exemple : `!voir_votes @Pierre`
+
+`!all_votes`
+└─ Voir les statistiques globales et tous les votes
+
+**🏆 Commandes de points (Administrateurs) :**
+`!point @utilisateur <numéro du match> <points>`
+└─ Attribuer des points à un utilisateur
+└─ Points : 1 = victoire, -1 = absence
+└─ Exemple : `!point @Pierre 1 1`
+
+`!reset_points @utilisateur`
+└─ Réinitialiser les points d'un utilisateur
+└─ Sans mention = réinitialise tous les points
+
+`!classement`
+└─ Voir le classement général des points
+└─ Affiche le top 3 avec médailles 🥇🥈🥉
+
+**📋 Liste des matchs disponibles :**"""
+
+    # Ajouter la liste des matchs
+    for match_id, match in matches.items():
+        team1, team2 = match
+        help_message += f"\n**Match {match_id}** : {team1} vs {team2}"
+
+    help_message += "\n\n**⚠️ Rappels importants :**"
+    help_message += "\n• Vous pouvez modifier vos votes à tout moment avant le début du match"
+    help_message += "\n• Les votes non effectués avant le début du match entraînent une pénalité de -1 point"
+    help_message += "\n• Utilisez les noms exacts des équipes (la casse n'est pas importante)"
+    help_message += "\n• Seuls les administrateurs peuvent attribuer ou réinitialiser les points"
+
+    await ctx.send(help_message)
 
 # Ajouter en haut du fichier
 vote_locks = {}
@@ -199,8 +212,8 @@ async def vote(ctx, match_id: int = None, *, team: str = None):
     
     print("=== FIN COMMANDE VOTE ===")
 
-# Commande !supprimer_vote
 
+# Commande !supprimer_vote
 
 @bot.command(name="supprimer_vote")
 async def supprimer_vote(ctx, match_id: int):
