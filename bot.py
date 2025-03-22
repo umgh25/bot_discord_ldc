@@ -154,11 +154,9 @@ async def help_vote(interaction: discord.Interaction):
     help_message += "\n• Utilisez les noms exacts des équipes (la casse n'est pas importante)"
     help_message += "\n• Seuls les administrateurs peuvent attribuer ou réinitialiser les points"
 
-    await interaction.response.send_message(help_message, ephemeral=True)
+    # 🔥 Correction ici : suppression de `ephemeral=True`
+    await interaction.response.send_message(help_message)  # Visible par tout le monde
 
-# Ajouter en haut du fichier
-vote_locks = {}
-point_locks = {}
 
 @bot.command()
 async def vote(ctx, match_id: int = None, *, team: str = None):
