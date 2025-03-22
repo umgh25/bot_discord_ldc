@@ -98,46 +98,46 @@ async def on_ready():
     except Exception as e:
         print(f"Erreur lors de la synchronisation des slash commands : {e}")
 
-# Commande d'aide pour le vote
-@bot.command(name="help_vote")
-async def help_vote(ctx):
+# Commande Slash pour l'aide sur le vote
+@bot.tree.command(name="help_vote", description="Affiche le guide des commandes de vote.")
+async def help_vote(interaction: discord.Interaction):
     help_message = """**🎮 GUIDE DES COMMANDES 🎮**
 
 **📝 Commandes principales :**
-`!vote <numéro du match> <nom de l'équipe>`
+`/vote <numéro du match> <nom de l'équipe>`
 └─ Pour voter pour une équipe
-└─ Exemple : `!vote 1 Club Bruges`
+└─ Exemple : `/vote 1 Club Bruges`
 
-`!modifier_vote <numéro du match> <nom de l'équipe>`
+`/modifier_vote <numéro du match> <nom de l'équipe>`
 └─ Pour modifier un vote existant
-└─ Exemple : `!modifier_vote 1 Aston Villa`
+└─ Exemple : `/modifier_vote 1 Aston Villa`
 
-`!supprimer_vote <numéro du match>`
+`/supprimer_vote <numéro du match>`
 └─ Pour supprimer un de vos votes
-└─ Exemple : `!supprimer_vote 1`
+└─ Exemple : `/supprimer_vote 1`
 
 **📊 Commandes de consultation :**
-`!recap`
+`/recap`
 └─ Voir tous vos votes
 
-`!voir_votes @utilisateur`
+`/voir_votes @utilisateur`
 └─ Voir les votes d'un autre utilisateur
-└─ Exemple : `!voir_votes @Pierre`
+└─ Exemple : `/voir_votes @Pierre`
 
-`!all_votes`
+`/all_votes`
 └─ Voir les statistiques globales et tous les votes
 
 **🏆 Commandes de points (Administrateurs) :**
-`!point @utilisateur <numéro du match> <points>`
+`/point @utilisateur <numéro du match> <points>`
 └─ Attribuer des points à un utilisateur
 └─ Points : 1 = victoire, -1 = absence
-└─ Exemple : `!point @Pierre 1 1`
+└─ Exemple : `/point @Pierre 1 1`
 
-`!reset_points @utilisateur`
+`/reset_points @utilisateur`
 └─ Réinitialiser les points d'un utilisateur
 └─ Sans mention = réinitialise tous les points
 
-`!classement`
+`/classement`
 └─ Voir le classement général des points
 └─ Affiche le top 3 avec médailles 🥇🥈🥉
 
@@ -154,7 +154,7 @@ async def help_vote(ctx):
     help_message += "\n• Utilisez les noms exacts des équipes (la casse n'est pas importante)"
     help_message += "\n• Seuls les administrateurs peuvent attribuer ou réinitialiser les points"
 
-    await ctx.send(help_message)
+    await interaction.response.send_message(help_message, ephemeral=True)
 
 # Ajouter en haut du fichier
 vote_locks = {}
