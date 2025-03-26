@@ -346,7 +346,7 @@ async def recap(interaction: discord.Interaction):
         await interaction.response.send_message(f"❌ Une erreur s'est produite lors de la récupération des votes.", ephemeral=False)
 
 # Commande slash pour afficher le récapitulatif des votes
-@bot.tree.command(name="all_votes", description="Affiche un résumé global des votes")
+@bot.tree.command(name="all_votes", description="Affiche un résumé global des votes avec les votants")
 async def all_votes(interaction: discord.Interaction):
     try:
         # Récupérer tous les votes depuis Supabase
@@ -357,7 +357,7 @@ async def all_votes(interaction: discord.Interaction):
             await interaction.response.send_message("❌ Aucun vote enregistré.", ephemeral=False)
             return
 
-        votes_par_match = {match_id: {"votes": {}} for match_id in matches.keys()}
+        votes_par_match = {match_id: {"votes": {}, "votants": {}} for match_id in matches.keys()}
         users_cache = {}
 
         for vote in all_votes:
@@ -372,13 +372,16 @@ async def all_votes(interaction: discord.Interaction):
                 except:
                     users_cache[user_id] = f"User_{user_id}"
 
-            votes_par_match[match_id]["votes"].setdefault(team, []).append(users_cache[user_id])
+            username = users_cache[user_id]
+            votes_par_match[match_id]["votes"].setdefault(team, []).append(username)
+            votes_par_match[match_id]["votants"][username] = team  # Stocker le choix par utilisateur
 
         message = "**📊 Votes Résumés 📊**\n"
         
         for match_id in sorted(votes_par_match.keys()):
             team1, team2 = matches[match_id]
             match_votes = votes_par_match[match_id]["votes"]
+            match_votants = votes_par_match[match_id]["votants"]
             total_votes = sum(len(voters) for voters in match_votes.values())
 
             message += f"\n📌 **{team1} vs {team2}**\n"
@@ -391,12 +394,17 @@ async def all_votes(interaction: discord.Interaction):
                     percentage = (len(voters) / total_votes * 100) if total_votes > 0 else 0
                     message += f"🏆 **{team}** - {len(voters)} votes ({percentage:.1f}%)\n"
 
+            # Ajouter les votants pour ce match
+            message += "\n👥 **Votants :**\n"
+            for voter, vote_choice in match_votants.items():
+                message += f"🔹 {voter} → {vote_choice}\n"
+
         total_users = len({vote["user_id"] for vote in all_votes})
         total_votes = len(all_votes)
 
         message += f"\n👥 **{total_users} participants** | 🗳️ **{total_votes} votes**"
 
-        await interaction.response.send_message(message)
+        await interaction.response.send_message(message[:2000])  # Discord limite à 2000 caractères
 
     except Exception as e:
         print(f"Erreur: {e}")
