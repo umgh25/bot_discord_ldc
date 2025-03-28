@@ -76,12 +76,6 @@ intents.message_content = True
 # Créer l'instance du bot avec les intents
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Charger le channel_id depuis .env
-CHANNEL_ID = int(os.getenv("CHANNEL_ID"))  # Convertir en int car Discord utilise des IDs numériques
-
-if not CHANNEL_ID:
-    raise ValueError("Le channel_id n'est pas configuré dans le fichier .env")
-
 # Liste des matchs
 matches = {
     1: ("Club Bruges", "Aston Villa"),
@@ -104,30 +98,9 @@ async def on_ready():
     except Exception as e:
         print(f"Erreur lors de la synchronisation des slash commands : {e}")
 
-# Fonction de vérification du canal
-def check_channel():
-    async def predicate(interaction: discord.Interaction):
-        if interaction.channel_id != CHANNEL_ID:
-            await interaction.response.send_message(
-                "❌ Cette commande ne peut être utilisée que dans le canal approprié.", 
-                ephemeral=True
-            )
-            return False
-        return True
-    return commands.check(predicate)
-
 # Commande Slash pour l'aide sur le vote
 @bot.tree.command(name="help_vote", description="Affiche le guide des commandes de vote.")
 async def help_vote(interaction: discord.Interaction):
-    # Vérifier si la commande est utilisée dans le bon canal
-    if interaction.channel_id != int(CHANNEL_ID):
-        await interaction.response.send_message(
-            f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>",
-            ephemeral=True
-        )
-        return
-    
-    # Construire le message d'aide
     help_message = """**🎮 GUIDE DES COMMANDES 🎮**
 
 **📝 Commandes principales :**
@@ -181,18 +154,9 @@ async def help_vote(interaction: discord.Interaction):
     help_message += "\n• Utilisez les noms exacts des équipes (la casse n'est pas importante)"
     help_message += "\n• Seuls les administrateurs peuvent attribuer ou réinitialiser les points"
 
-    # Envoyer le message d'aide
+    # 🔥 Correction ici : suppression de `ephemeral=True`
     await interaction.response.send_message(help_message)  # Visible par tout le monde
 
-
-
-@bot.command()
-@bot.check
-async def globally_check_channel(ctx):
-    if ctx.channel.id != CHANNEL_ID:
-        await ctx.send("❌ Cette commande ne peut être utilisée que dans le canal approprié.")
-        return False
-    return True
 
 @bot.command()
 async def vote(ctx, match_id: int = None, *, team: str = None):
@@ -599,7 +563,6 @@ async def point_error(ctx, error):
 
 # Commande de classement en slash command
 @bot.tree.command(name="classement", description="Affiche le classement des points.")
-@check_channel()
 async def classement(interaction: discord.Interaction):
     try:
         # Récupérer le classement
@@ -717,4 +680,3 @@ keep_alive()
 
 # Lancement du bot avec le token
 bot.run(TOKEN)
-
