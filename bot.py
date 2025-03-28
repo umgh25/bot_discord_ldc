@@ -118,8 +118,16 @@ def check_channel():
 
 # Commande Slash pour l'aide sur le vote
 @bot.tree.command(name="help_vote", description="Affiche le guide des commandes de vote.")
-@check_channel()
 async def help_vote(interaction: discord.Interaction):
+    # Vérifier si la commande est utilisée dans le bon canal
+    if interaction.channel_id != int(CHANNEL_ID):
+        await interaction.response.send_message(
+            f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>",
+            ephemeral=True
+        )
+        return
+    
+    # Construire le message d'aide
     help_message = """**🎮 GUIDE DES COMMANDES 🎮**
 
 **📝 Commandes principales :**
@@ -173,8 +181,9 @@ async def help_vote(interaction: discord.Interaction):
     help_message += "\n• Utilisez les noms exacts des équipes (la casse n'est pas importante)"
     help_message += "\n• Seuls les administrateurs peuvent attribuer ou réinitialiser les points"
 
-    # 🔥 Correction ici : suppression de `ephemeral=True`
+    # Envoyer le message d'aide
     await interaction.response.send_message(help_message)  # Visible par tout le monde
+
 
 
 @bot.command()
