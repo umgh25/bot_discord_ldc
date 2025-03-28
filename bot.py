@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands
-import json
 import os
 from dotenv import load_dotenv
 from pathlib import Path
@@ -22,51 +21,6 @@ print(f"Début du token : {TOKEN[:10]}... (pour vérification)")
 
 if not TOKEN:
     raise ValueError("Le token Discord n'est pas configuré")
-
-# Fichier où stocker les votes
-VOTES_FILE = "votes.json"
-
-# Structure pour stocker les points
-POINTS_FILE = "points.json"
-
-# Charger les votes depuis le fichier (s'il existe)
-
-
-def charger_votes():
-    if os.path.exists(VOTES_FILE):
-        with open(VOTES_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
-
-# Sauvegarder les votes dans le fichier JSON
-
-
-def sauvegarder_votes():
-    with open(VOTES_FILE, "w", encoding="utf-8") as f:
-        json.dump(votes, f, indent=4)
-
-# Charger les points depuis le fichier (s'il existe)
-
-
-def charger_points():
-    if os.path.exists(POINTS_FILE):
-        with open(POINTS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
-
-# Sauvegarder les points dans le fichier JSON
-
-
-def sauvegarder_points():
-    with open(POINTS_FILE, "w", encoding="utf-8") as f:
-        json.dump(points, f, indent=4)
-
-
-# Charger les votes au démarrage
-votes = charger_votes()
-
-# Charger les points au démarrage
-points = charger_points()
 
 # Créer les intents nécessaires
 intents = discord.Intents.default()
