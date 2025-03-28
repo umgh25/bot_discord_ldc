@@ -76,6 +76,12 @@ intents.message_content = True
 # Créer l'instance du bot avec les intents
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# Charger le channel_id depuis .env
+CHANNEL_ID = os.getenv("CHANNEL_ID")
+
+if not CHANNEL_ID:
+    raise ValueError("Le channel_id n'est pas configuré dans le fichier .env")
+
 # Liste des matchs
 matches = {
     1: ("Club Bruges", "Aston Villa"),
