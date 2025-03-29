@@ -22,6 +22,11 @@ print(f"Début du token : {TOKEN[:10]}... (pour vérification)")
 if not TOKEN:
     raise ValueError("Le token Discord n'est pas configuré")
 
+# Après la récupération du TOKEN, ajouter :
+CHANNEL_ID = os.getenv('CHANNEL_ID')
+if not CHANNEL_ID:
+    raise ValueError("Le CHANNEL_ID n'est pas configuré dans le .env")
+
 # Créer les intents nécessaires
 intents = discord.Intents.default()
 # Pour pouvoir lire le contenu des messages (important pour les commandes)
@@ -46,15 +51,31 @@ matches = {
 @bot.event
 async def on_ready():
     print(f'{bot.user} est connecté et prêt !')
+    print(f'Canal restreint : {CHANNEL_ID}')
     try:
+        channel = bot.get_channel(int(CHANNEL_ID))
+        if channel:
+            print(f"Canal trouvé : #{channel.name}")
+        else:
+            print("⚠️ ATTENTION : Le canal spécifié n'a pas été trouvé !")
         synced = await bot.tree.sync()
         print(f"Slash commands synchronisées : {len(synced)}")
     except Exception as e:
         print(f"Erreur lors de la synchronisation des slash commands : {e}")
 
+# Créer une fonction de vérification du canal
+def check_channel(interaction: discord.Interaction) -> bool:
+    return str(interaction.channel_id) == CHANNEL_ID
+
 # Commande Slash pour l'aide sur le vote
 @bot.tree.command(name="help_vote", description="Affiche le guide des commandes de vote.")
 async def help_vote(interaction: discord.Interaction):
+    if not check_channel(interaction):
+        await interaction.response.send_message(
+            f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>",
+            ephemeral=True
+        )
+        return
     help_message = """**🎮 GUIDE DES COMMANDES 🎮**
 
 **📝 Commandes principales :**
@@ -255,6 +276,12 @@ Pénalité : Chaque match non pronostiqué à temps entraîne une pénalité de 
 # Commande Slash pour voir le récapitulatif des votes
 @bot.tree.command(name="recap", description="Affiche un récapitulatif de vos votes dans le channel.")
 async def recap(interaction: discord.Interaction):
+    if not check_channel(interaction):
+        await interaction.response.send_message(
+            f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>",
+            ephemeral=True
+        )
+        return
     user_id = str(interaction.user.id)
     
     try:
@@ -518,6 +545,12 @@ async def point_error(ctx, error):
 # Commande de classement en slash command
 @bot.tree.command(name="classement", description="Affiche le classement des points.")
 async def classement(interaction: discord.Interaction):
+    if not check_channel(interaction):
+        await interaction.response.send_message(
+            f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>",
+            ephemeral=True
+        )
+        return
     try:
         # Récupérer le classement
         leaderboard_data = get_leaderboard()
@@ -629,6 +662,13 @@ async def reset_points_cmd(ctx, member: discord.Member = None):
 async def reset_points_error(ctx, error):
     if isinstance(error, commands.MissingPermissions):
         await ctx.send("❌ Seuls les administrateurs peuvent réinitialiser les points.")
+
+# Pour les commandes normales, ajouter un event listener
+@bot.event
+async def on_command(ctx):
+    if str(ctx.channel.id) != CHANNEL_ID:
+        await ctx.send(f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>")
+        raise commands.CommandError("Mauvais canal")
 
 keep_alive()
 
