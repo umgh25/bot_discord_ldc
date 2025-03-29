@@ -135,6 +135,9 @@ async def help_vote(interaction: discord.Interaction):
 
 @bot.command()
 async def vote(ctx, match_id: int = None, *, team: str = None):
+    if str(ctx.channel.id) != CHANNEL_ID:
+        await ctx.send(f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>")
+        return
     # Vérifier si l'utilisateur a un vote en cours
     user_id = str(ctx.author.id)
     if user_id in vote_locks:
@@ -190,6 +193,9 @@ async def vote(ctx, match_id: int = None, *, team: str = None):
 
 @bot.command(name="supprimer_vote")
 async def supprimer_vote(ctx, match_id: int):
+    if str(ctx.channel.id) != CHANNEL_ID:
+        await ctx.send(f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>")
+        return
     user_id = str(ctx.author.id)
     
     try:
@@ -219,6 +225,9 @@ async def supprimer_vote(ctx, match_id: int):
 
 @bot.command()
 async def programme(ctx):
+    if str(ctx.channel.id) != CHANNEL_ID:
+        await ctx.send(f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>")
+        return
     message = """**Oyé, Oyé,
 ⚽ La Ligue des Champions reprend demain avec les huitièmes de finale ! ⚽
 🔥 Les meilleurs clubs d'Europe s'affrontent pour une place en quarts de finale ! 🔥
@@ -329,6 +338,12 @@ async def recap(interaction: discord.Interaction):
 # Commande slash pour afficher le récapitulatif des votes
 @bot.tree.command(name="all_votes", description="Affiche un résumé global des votes avec les votants")
 async def all_votes(interaction: discord.Interaction):
+    if not check_channel(interaction):
+        await interaction.response.send_message(
+            f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>",
+            ephemeral=True
+        )
+        return
     try:
         # Récupérer tous les votes depuis Supabase
         result = supabase.table("votes").select("*").execute()
@@ -395,6 +410,9 @@ async def all_votes(interaction: discord.Interaction):
 # Commande pour voir les votes d'un utilisateur spécifique
 @bot.command(name="voir_votes")
 async def voir_votes(ctx, member: discord.Member = None):
+    if str(ctx.channel.id) != CHANNEL_ID:
+        await ctx.send(f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>")
+        return
     if member is None:
         await ctx.send("❌ Veuillez mentionner un utilisateur. Exemple : `!voir_votes @utilisateur`")
         return
@@ -446,6 +464,9 @@ async def voir_votes(ctx, member: discord.Member = None):
 # Commande pour modifier un vote existant
 @bot.command(name="modifier_vote")
 async def modifier_vote(ctx, match_id: int = None, *, team: str = None):
+    if str(ctx.channel.id) != CHANNEL_ID:
+        await ctx.send(f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>")
+        return
     user_id = str(ctx.author.id)
     
     try:
@@ -499,6 +520,9 @@ async def modifier_vote(ctx, match_id: int = None, *, team: str = None):
 @bot.command(name="point")
 @commands.max_concurrency(1, per=commands.BucketType.user)  # Limite à une exécution à la fois par utilisateur
 async def point(ctx, member: discord.Member = None, match_id: int = None, point_value: int = None):
+    if str(ctx.channel.id) != CHANNEL_ID:
+        await ctx.send(f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>")
+        return
     try:
         if None in (member, match_id, point_value):
             await ctx.send("❌ Format incorrect. Utilisez `!point @utilisateur 1 1`")
@@ -609,6 +633,9 @@ async def classement(interaction: discord.Interaction):
 @bot.command(name="reset_points")
 @commands.has_permissions(administrator=True)
 async def reset_points_cmd(ctx, member: discord.Member = None):
+    if str(ctx.channel.id) != CHANNEL_ID:
+        await ctx.send(f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>")
+        return
     try:
         if member is None:
             # Demander confirmation pour réinitialiser tous les points
