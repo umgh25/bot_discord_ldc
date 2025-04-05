@@ -134,6 +134,7 @@ async def vote(ctx, match_id: int = None, *, team: str = None):
     if str(ctx.channel.id) != CHANNEL_ID:
         await ctx.send(f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>")
         return
+        
     # Vérifier si l'utilisateur a un vote en cours
     user_id = str(ctx.author.id)
     if user_id in vote_locks:
@@ -151,15 +152,19 @@ async def vote(ctx, match_id: int = None, *, team: str = None):
             await ctx.send("❌ Format incorrect. Utilisez `!vote <numéro du match> <nom de l'équipe>`")
             return
         
+        # Mise à jour de la vérification pour inclure les nouveaux matchs
         if match_id not in matches:
-            await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont de 1 à {len(matches)}.")
+            await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont :\n"
+                         "**Quarts de finale** : 9 à 12")
             return
 
         team1, team2 = matches[match_id]
         team = team.strip()
         
         if team.lower() not in [team1.lower(), team2.lower()]:
-            await ctx.send(f"❌ Équipe invalide. Pour le match {match_id}, vous pouvez seulement voter pour :\n- **{team1}**\n- **{team2}**")
+            await ctx.send(f"❌ Équipe invalide. Pour le match {match_id}, vous pouvez seulement voter pour :\n"
+                         f"- **{team1}**\n"
+                         f"- **{team2}**")
             return
         
         team = team1 if team.lower() == team1.lower() else team2
