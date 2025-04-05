@@ -35,6 +35,10 @@ intents.message_content = True
 # Créer l'instance du bot avec les intents
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# Après la définition des matches, ajouter :
+# Dictionnaire pour gérer les verrous des votes
+vote_locks = {}
+
 # Liste des matchs
 matches = {
     9: ("Bayern Munich", "Inter Milan"),
