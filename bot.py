@@ -39,13 +39,30 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # Dictionnaire pour gérer les verrous des votes
 vote_locks = {}
 
-# Liste des matchs
-matches = {
-    9: ("Bayern Munich", "Inter Milan"),
-    10: ("Arsenal", "Real Madrid"),
-    11: ("Barcelone", "Dortmund"),
-    12: ("Paris Saint-Germain", "Aston Villa")
+# Définir les phases de la compétition
+MATCHES_PHASES = {
+    # Huitièmes de finale (anciens matchs)
+    "huitiemes": {
+        1: ("Club Bruges", "Aston Villa"),
+        2: ("Real Madrid", "Atlético Madrid"),
+        3: ("PSV Eindhoven", "Arsenal"),
+        4: ("Borussia Dortmund", "Lille"),
+        5: ("Feyenoord", "Inter Milan"),
+        6: ("Benfica", "FC Barcelone"),
+        7: ("Bayern Munich", "Bayer Leverkusen"),
+        8: ("Paris Saint-Germain", "Liverpool")
+    },
+    # Quarts de finale (matchs actuels)
+    "quarts": {
+        9: ("Bayern Munich", "Inter Milan"),
+        10: ("Arsenal", "Real Madrid"),
+        11: ("Barcelone", "Dortmund"),
+        12: ("Paris Saint-Germain", "Aston Villa")
+    }
 }
+
+# Pour les commandes actives, n'utiliser que les matchs actuels
+matches = MATCHES_PHASES["quarts"]
 
 # Événement quand le bot est prêt
 @bot.event
@@ -296,15 +313,18 @@ async def recap(interaction: discord.Interaction):
             ephemeral=True
         )
         return
+        
     user_id = str(interaction.user.id)
     
     try:
-        # Récupérer tous les votes de l'utilisateur depuis Supabase
         result = supabase.table("votes").select("*").eq("user_id", user_id).execute()
         user_votes = result.data
         
         if not user_votes:
-            await interaction.response.send_message(f"❌ {interaction.user.mention}, tu n'as pas encore voté pour aucun match.", ephemeral=False)
+            await interaction.response.send_message(
+                f"❌ {interaction.user.mention}, tu n'as pas encore voté pour aucun match.",
+                ephemeral=False
+            )
             return
             
         recap_message = f"**📊 Récapitulatif des votes de {interaction.user.mention} :**\n\n"
@@ -316,29 +336,41 @@ async def recap(interaction: discord.Interaction):
             match_id = vote['match_id']
             voted_team = vote['choice']
             
-            if match_id in matches:
-                team1, team2 = matches[match_id]
-                recap_message += f"**Match {match_id}** : {team1} vs {team2}\n"
-                recap_message += f"➡️ Son vote : **{voted_team}**\n\n"
+            # Chercher le match dans toutes les phases
+            match_found = False
+            for phase, phase_matches in MATCHES_PHASES.items():
+                if match_id in phase_matches:
+                    team1, team2 = phase_matches[match_id]
+                    phase_name = "Huitièmes" if phase == "huitiemes" else "Quarts"
+                    recap_message += f"**Match {match_id}** ({phase_name}) : {team1} vs {team2}\n"
+                    recap_message += f"➡️ Son vote : **{voted_team}**\n\n"
+                    match_found = True
+                    break
+            
+            if not match_found:
+                recap_message += f"**Match {match_id}** : Vote pour **{voted_team}**\n\n"
         
-        # Ajouter le nombre total de votes
+        # Statistiques uniquement pour les matchs actuels
         total_votes = len(user_votes)
-        matches_restants = len(matches) - total_votes
+        matches_restants = len(matches) - sum(1 for v in user_votes if v['match_id'] in matches)
         
-        recap_message += f"**📈 Statistiques :**\n"
+        recap_message += f"**📈 Statistiques des quarts de finale :**\n"
         recap_message += f"- Votes effectués : **{total_votes}/{len(matches)}**\n"
         
         if matches_restants > 0:
             recap_message += f"- Matches restants à voter : **{matches_restants}**\n"
             recap_message += f"\n💡 Utilisez `/help_vote` pour voir la liste des matches disponibles."
         else:
-            recap_message += f"\n✅ {interaction.user.mention} a voté pour tous les matches !"
+            recap_message += f"\n✅ {interaction.user.mention} a voté pour tous les matches des quarts !"
 
-        await interaction.response.send_message(recap_message)  # Message visible par tous
+        await interaction.response.send_message(recap_message)
         
     except Exception as e:
         print(f"Erreur lors du récap: {str(e)}")
-        await interaction.response.send_message(f"❌ Une erreur s'est produite lors de la récupération des votes.", ephemeral=False)
+        await interaction.response.send_message(
+            f"❌ Une erreur s'est produite lors de la récupération des votes.",
+            ephemeral=False
+        )
 
 # Commande slash pour afficher le récapitulatif des votes
 @bot.tree.command(name="all_votes", description="Affiche un résumé global des votes avec les votants")
