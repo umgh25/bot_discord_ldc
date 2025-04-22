@@ -52,17 +52,22 @@ MATCHES_PHASES = {
         7: ("Bayern Munich", "Bayer Leverkusen"),
         8: ("Paris Saint-Germain", "Liverpool")
     },
-    # Quarts de finale (matchs actuels)
+    # Quarts de finale (anciens matchs)
     "quarts": {
         9: ("Bayern Munich", "Inter Milan"),
         10: ("Arsenal", "Real Madrid"),
         11: ("Barcelone", "Dortmund"),
         12: ("Paris Saint-Germain", "Aston Villa")
+    },
+    # Demi-finales (matchs actuels)
+    "demis": {
+        13: ("Arsenal", "Paris Saint-Germain"),
+        14: ("Barcelone", "Inter Milan")
     }
 }
 
 # Pour les commandes actives, n'utiliser que les matchs actuels
-matches = MATCHES_PHASES["quarts"]
+matches = MATCHES_PHASES["demis"]
 
 # Événement quand le bot est prêt
 @bot.event
@@ -176,7 +181,7 @@ async def vote(ctx, match_id: int = None, *, team: str = None):
         # Mise à jour de la vérification pour inclure les nouveaux matchs
         if match_id not in matches:
             await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont :\n"
-                         "**Quarts de finale** : 9 à 12")
+                         "**Demi-finales** : 13 à 14")
             return
 
         team1, team2 = matches[match_id]
@@ -341,7 +346,7 @@ async def recap(interaction: discord.Interaction):
             for phase, phase_matches in MATCHES_PHASES.items():
                 if match_id in phase_matches:
                     team1, team2 = phase_matches[match_id]
-                    phase_name = "Huitièmes" if phase == "huitiemes" else "Quarts"
+                    phase_name = "Huitièmes" if phase == "huitiemes" else "Quarts" if phase == "quarts" else "Demi-finales"
                     recap_message += f"**Match {match_id}** ({phase_name}) : {team1} vs {team2}\n"
                     recap_message += f"➡️ Son vote : **{voted_team}**\n\n"
                     match_found = True
@@ -354,14 +359,14 @@ async def recap(interaction: discord.Interaction):
         total_votes = len(user_votes)
         matches_restants = len(matches) - sum(1 for v in user_votes if v['match_id'] in matches)
         
-        recap_message += f"**📈 Statistiques des quarts de finale :**\n"
+        recap_message += f"**📈 Statistiques des demi-finales :**\n"
         recap_message += f"- Votes effectués : **{total_votes}/{len(matches)}**\n"
         
         if matches_restants > 0:
             recap_message += f"- Matches restants à voter : **{matches_restants}**\n"
             recap_message += f"\n💡 Utilisez `/help_vote` pour voir la liste des matches disponibles."
         else:
-            recap_message += f"\n✅ {interaction.user.mention} a voté pour tous les matches des quarts !"
+            recap_message += f"\n✅ {interaction.user.mention} a voté pour tous les matches des demi-finales !"
 
         await interaction.response.send_message(recap_message)
         
