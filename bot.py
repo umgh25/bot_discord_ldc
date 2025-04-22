@@ -519,7 +519,8 @@ async def modifier_vote(ctx, match_id: int = None, *, team: str = None):
 
         # Vérifier si le match existe
         if match_id not in matches:
-            await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont de 1 à {len(matches)}.")
+            await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont :\n"
+                         "**Demi-finales** : 13 à 14")
             return
 
         # Vérifier si l'utilisateur a déjà voté pour ce match
@@ -571,7 +572,8 @@ async def point(ctx, member: discord.Member = None, match_id: int = None, point_
             return
 
         if match_id not in matches:
-            await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont de 1 à {len(matches)}.")
+            await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont :\n"
+                         "**Demi-finales** : 13 à 14")
             return
 
         if point_value not in [-1, 1]:
