@@ -59,15 +59,19 @@ MATCHES_PHASES = {
         11: ("Barcelone", "Dortmund"),
         12: ("Paris Saint-Germain", "Aston Villa")
     },
-    # Demi-finales (matchs actuels)
+    # Demi-finales (anciens actuels)
     "demis": {
         13: ("Arsenal", "Paris Saint-Germain"),
         14: ("Barcelone", "Inter Milan")
+    },
+    # finale (matchs actuels)
+    "finale": {
+        15: ("Paris Saint-Germain", "Inter Milan"),
     }
 }
 
 # Pour les commandes actives, n'utiliser que les matchs actuels
-matches = MATCHES_PHASES["demis"]
+matches = MATCHES_PHASES["finale"]
 
 # Événement quand le bot est prêt
 @bot.event
@@ -181,7 +185,7 @@ async def vote(ctx, match_id: int = None, *, team: str = None):
         # Mise à jour de la vérification pour inclure les nouveaux matchs
         if match_id not in matches:
             await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont :\n"
-                         "**Demi-finales** : 13 à 14")
+                         "**Finale** : 15")
             return
 
         team1, team2 = matches[match_id]
@@ -346,7 +350,7 @@ async def recap(interaction: discord.Interaction):
             for phase, phase_matches in MATCHES_PHASES.items():
                 if match_id in phase_matches:
                     team1, team2 = phase_matches[match_id]
-                    phase_name = "Huitièmes" if phase == "huitiemes" else "Quarts" if phase == "quarts" else "Demi-finales"
+                    phase_name = "Finale"
                     recap_message += f"**Match {match_id}** ({phase_name}) : {team1} vs {team2}\n"
                     recap_message += f"➡️ Son vote : **{voted_team}**\n\n"
                     match_found = True
@@ -359,14 +363,14 @@ async def recap(interaction: discord.Interaction):
         total_votes = len(user_votes)
         matches_restants = len(matches) - sum(1 for v in user_votes if v['match_id'] in matches)
         
-        recap_message += f"**📈 Statistiques des demi-finales :**\n"
+        recap_message += f"**📈 Statistiques de la finale :**\n"
         recap_message += f"- Votes effectués : **{total_votes}/{len(matches)}**\n"
         
         if matches_restants > 0:
             recap_message += f"- Matches restants à voter : **{matches_restants}**\n"
             recap_message += f"\n💡 Utilisez `/help_vote` pour voir la liste des matches disponibles."
         else:
-            recap_message += f"\n✅ {interaction.user.mention} a voté pour tous les matches des demi-finales !"
+            recap_message += f"\n✅ {interaction.user.mention} a voté pour tous les matches de la finale !"
 
         await interaction.response.send_message(recap_message)
         
@@ -520,7 +524,7 @@ async def modifier_vote(ctx, match_id: int = None, *, team: str = None):
         # Vérifier si le match existe
         if match_id not in matches:
             await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont :\n"
-                         "**Demi-finales** : 13 à 14")
+                         "**Finale** : 15")
             return
 
         # Vérifier si l'utilisateur a déjà voté pour ce match
@@ -573,7 +577,7 @@ async def point(ctx, member: discord.Member = None, match_id: int = None, point_
 
         if match_id not in matches:
             await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont :\n"
-                         "**Demi-finales** : 13 à 14")
+                         "**Finale** : 15")
             return
 
         if point_value not in [-1, 1]:
