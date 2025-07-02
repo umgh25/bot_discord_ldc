@@ -129,10 +129,10 @@ async def help_vote(interaction: discord.Interaction):
 └─ Voir les statistiques globales et tous les votes
 
 **🏆 Commandes de points (Administrateurs) :**
-`/point @utilisateur <numéro du match> <points>`
+`/points @utilisateur <numéro du match> <points>`
 └─ Attribuer des points à un utilisateur
 └─ Points : 1 = victoire, -1 = absence
-└─ Exemple : `/point @Pierre 1 1`
+└─ Exemple : `/points @Pierre 1 1`
 
 `/reset_points @utilisateur`
 └─ Réinitialiser les points d'un utilisateur
@@ -564,7 +564,7 @@ async def modifier_vote(ctx, match_id: int = None, *, team: str = None):
         await ctx.send(f"❌ Une erreur s'est produite lors de la modification du vote.")
 
 # Commande slash pour attribuer des points (ADMIN)
-@bot.tree.command(name="point", description="Attribuer des points à un utilisateur (admin seulement)")
+@bot.tree.command(name="points", description="Attribuer des points à un utilisateur (admin seulement)")
 async def point_slash(interaction: discord.Interaction, membre: discord.Member, match_id: int, point_value: int):
     # Vérifier le canal
     if not check_channel(interaction):
