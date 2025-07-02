@@ -563,56 +563,58 @@ async def modifier_vote(ctx, match_id: int = None, *, team: str = None):
         print(f"Erreur lors de la modification du vote: {str(e)}")
         await ctx.send(f"❌ Une erreur s'est produite lors de la modification du vote.")
 
-# Commande pour attribuer des points
-@bot.command(name="point")
-@commands.max_concurrency(1, per=commands.BucketType.user)  # Limite à une exécution à la fois par utilisateur
-async def point(ctx, member: discord.Member = None, match_id: int = None, point_value: int = None):
-    if str(ctx.channel.id) != CHANNEL_ID:
-        await ctx.send(f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>")
+# Commande slash pour attribuer des points (ADMIN)
+@bot.tree.command(name="point", description="Attribuer des points à un utilisateur (admin seulement)")
+async def point_slash(interaction: discord.Interaction, membre: discord.Member, match_id: int, point_value: int):
+    # Vérifier le canal
+    if not check_channel(interaction):
+        await interaction.response.send_message(
+            f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>",
+            ephemeral=True
+        )
+        return
+    # Vérifier les permissions administrateur
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message(
+            "❌ Seuls les administrateurs peuvent attribuer des points.",
+            ephemeral=True
+        )
         return
     try:
-        if None in (member, match_id, point_value):
-            await ctx.send("❌ Format incorrect. Utilisez `!point @utilisateur 1 1`")
-            return
-
         if match_id not in matches:
-            await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont :\n"
-                         "**Finale** : 15")
+            await interaction.response.send_message(
+                f"❌ Match {match_id} invalide. Les matchs disponibles sont :\n**Finale** : 15",
+                ephemeral=True
+            )
             return
-
         if point_value not in [-1, 1]:
-            await ctx.send("❌ Les points doivent être 1 (victoire) ou -1 (absence)")
+            await interaction.response.send_message(
+                "❌ Les points doivent être 1 (victoire) ou -1 (absence)",
+                ephemeral=True
+            )
             return
-
-        user_id = str(member.id)
+        user_id = str(membre.id)
         success = add_points(user_id, match_id, point_value)
-        
         if not success:
-            await ctx.send("❌ Une erreur s'est produite lors de l'attribution des points.")
+            await interaction.response.send_message(
+                "❌ Une erreur s'est produite lors de l'attribution des points.",
+                ephemeral=True
+            )
             return
-            
         team1, team2 = matches[match_id]
-        
         if point_value > 0:
-            message = f"✅ {member.mention} a gagné **{point_value}** point pour le match {match_id} !\n"
+            message = f"✅ {membre.mention} a gagné **{point_value}** point pour le match {match_id} !\n"
         else:
-            message = f"❌ {member.mention} a perdu **{abs(point_value)}** point pour le match {match_id} !\n"
-            
+            message = f"❌ {membre.mention} a perdu **{abs(point_value)}** point pour le match {match_id} !\n"
         message += f"└─ Match : **{team1}** vs **{team2}**\n"
         message += f"└─ Points : **{point_value}**"
-        
-        await ctx.reply(message)  # Utiliser reply au lieu de send
-        
-    except commands.MaxConcurrencyReached:
-        await ctx.send("⚠️ Une commande est déjà en cours pour cet utilisateur.")
+        await interaction.response.send_message(message)
     except Exception as e:
-        print(f"Erreur dans la commande point: {str(e)}")
-        await ctx.send("❌ Une erreur s'est produite lors de l'attribution des points.")
-
-@point.error
-async def point_error(ctx, error):
-    if isinstance(error, commands.MissingPermissions):
-        await ctx.send("❌ Seuls les administrateurs peuvent attribuer des points.")
+        print(f"Erreur dans la commande slash point: {str(e)}")
+        await interaction.response.send_message(
+            "❌ Une erreur s'est produite lors de l'attribution des points.",
+            ephemeral=True
+        )
 
 # Commande de classement en slash command
 @bot.tree.command(name="classement", description="Affiche le classement des points.")
