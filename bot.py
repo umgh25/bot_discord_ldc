@@ -7,20 +7,33 @@ from keep_alive import keep_alive
 from database import *  # Importe toutes les fonctions de database.py
 import asyncio
 
-# Obtenir le chemin absolu du fichier .env
+# Charger les variables d'environnement à partir du fichier .env
 env_path = Path('.') / '.env'
-
-# Charger les variables d'environnement
 load_dotenv(dotenv_path=env_path)
 
-# Récupérer le token
+# Récupération des variables critiques
 TOKEN = os.getenv('DISCORD_TOKEN')
-print(f"Token trouvé : {'Oui' if TOKEN else 'Non'}")
-print(f"Longueur du token : {len(TOKEN) if TOKEN else 0}")
-print(f"Début du token : {TOKEN[:10]}... (pour vérification)")
+CHANNEL_ID = os.getenv('CHANNEL_ID')
+ENV = os.getenv('ENV', 'prod').lower()  # 'dev' ou 'prod'
 
+# Log en mode développement uniquement
+def log_dev(message: str):
+    if ENV == 'dev':
+        print(f"[DEV LOG] {message}")
+
+# Vérification des variables obligatoires
 if not TOKEN:
-    raise ValueError("Le token Discord n'est pas configuré")
+    raise ValueError("❌ Le token Discord n'est pas défini dans le fichier .env")
+
+if not CHANNEL_ID:
+    raise ValueError("❌ Le CHANNEL_ID n'est pas défini dans le fichier .env")
+
+# Journalisation de contrôle uniquement si en dev
+log_dev("✅ Token Discord chargé.")
+log_dev(f"Longueur : {len(TOKEN)}")
+log_dev(f"Début : {TOKEN[:10]}...")
+
+log_dev("✅ CHANNEL_ID chargé.")
 
 # Après la récupération du TOKEN, ajouter :
 CHANNEL_ID = os.getenv('CHANNEL_ID')
