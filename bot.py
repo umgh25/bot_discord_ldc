@@ -58,7 +58,7 @@ MATCHES_PHASES = {
 }
 
 # Pour les commandes actives, n'utiliser que les matchs actuels
-matches = MATCHES_PHASES["finale"]
+matches = MATCHES_PHASES.get("finale", {})
 
 # Événement quand le bot est prêt
 @bot.event
