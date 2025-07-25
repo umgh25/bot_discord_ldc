@@ -209,19 +209,22 @@ async def vote(ctx, match_id: int = None, *, team: str = None):
 
 # Commande !supprimer_vote
 
-@bot.command(name="supprimer_vote")
-async def supprimer_vote(ctx, match_id: int):
-    if str(ctx.channel.id) != CHANNEL_ID:
-        await ctx.send(f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>")
+@bot.tree.command(name="supprimer_vote", description="Supprime votre vote pour un match spécifique.")
+async def supprimer_vote(interaction: discord.Interaction, match_id: int):
+    if not check_channel(interaction):
+        await interaction.response.send_message(
+            f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>",
+            ephemeral=True
+        )
         return
-    user_id = str(ctx.author.id)
+    user_id = str(interaction.user.id)
     
     try:
         # Vérifier si le vote existe
         result = supabase.table("votes").select("*").eq("user_id", user_id).eq("match_id", match_id).execute()
         
         if not result.data:
-            await ctx.send(f"❌ {ctx.author.mention}, tu n'as pas encore voté pour le match {match_id}.")
+            await interaction.response.send_message(f"❌ {interaction.user.mention}, tu n'as pas encore voté pour le match {match_id}.")
             return
         
         # Suppression du vote
@@ -230,13 +233,13 @@ async def supprimer_vote(ctx, match_id: int):
         # Récupérer les équipes du match pour le message
         if match_id in matches:
             team1, team2 = matches[match_id]
-            await ctx.send(f"✅ {ctx.author.mention}, ton vote pour le match {match_id} ({team1} vs {team2}) a été supprimé !")
+            await interaction.response.send_message(f"✅ {interaction.user.mention}, ton vote pour le match {match_id} ({team1} vs {team2}) a été supprimé !")
         else:
-            await ctx.send(f"✅ {ctx.author.mention}, ton vote pour le match {match_id} a été supprimé !")
+            await interaction.response.send_message(f"✅ {interaction.user.mention}, ton vote pour le match {match_id} a été supprimé !")
             
     except Exception as e:
         print(f"Erreur lors de la suppression du vote: {str(e)}")
-        await ctx.send(f"❌ Une erreur s'est produite lors de la suppression du vote.")
+        await interaction.response.send_message(f"❌ Une erreur s'est produite lors de la suppression du vote.")
 
 # Commande Slash pour afficher le programme (Annonce du quiz)
 @bot.tree.command(name="programme", description="Affiche le programme des matchs et les règles du concours.")
