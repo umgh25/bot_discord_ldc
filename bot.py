@@ -444,16 +444,15 @@ async def all_votes(interaction: discord.Interaction):
         await interaction.response.send_message("❌ Erreur lors de la récupération des votes.", ephemeral=True)
 
 
-# Commande pour voir les votes d'un utilisateur spécifique
-@bot.command(name="voir_votes")
-async def voir_votes(ctx, member: discord.Member = None):
-    if str(ctx.channel.id) != CHANNEL_ID:
-        await ctx.send(f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>")
+@bot.tree.command(name="voir_votes", description="Affiche les votes d'un utilisateur spécifique.")
+async def voir_votes(interaction: discord.Interaction, member: discord.Member):
+    if not check_channel(interaction):
+        await interaction.response.send_message(
+            f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>",
+            ephemeral=True
+        )
         return
-    if member is None:
-        await ctx.send("❌ Veuillez mentionner un utilisateur. Exemple : `!voir_votes @utilisateur`")
-        return
-
+    
     user_id = str(member.id)
     
     try:
@@ -462,7 +461,7 @@ async def voir_votes(ctx, member: discord.Member = None):
         user_votes = result.data
         
         if not user_votes:
-            await ctx.send(f"❌ {member.mention} n'a pas encore voté pour aucun match.")
+            await interaction.response.send_message(f"❌ {member.mention} n'a pas encore voté pour aucun match.")
             return
             
         recap_message = f"**📊 Votes de {member.mention} :**\n\n"
@@ -492,11 +491,11 @@ async def voir_votes(ctx, member: discord.Member = None):
         else:
             recap_message += f"\n✅ A voté pour tous les matches !"
 
-        await ctx.send(recap_message)
+        await interaction.response.send_message(recap_message)
         
     except Exception as e:
         print(f"Erreur lors de la récupération des votes: {str(e)}")
-        await ctx.send(f"❌ Une erreur s'est produite lors de la récupération des votes.")
+        await interaction.response.send_message(f"❌ Une erreur s'est produite lors de la récupération des votes.")
 
 # Commande pour modifier un vote existant
 @bot.command(name="modifier_vote")
