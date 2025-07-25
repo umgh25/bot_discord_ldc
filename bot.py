@@ -238,13 +238,14 @@ async def supprimer_vote(ctx, match_id: int):
         print(f"Erreur lors de la suppression du vote: {str(e)}")
         await ctx.send(f"❌ Une erreur s'est produite lors de la suppression du vote.")
 
-# Commande !programme (Annonce du quiz)
-
-
-@bot.command()
-async def programme(ctx):
-    if str(ctx.channel.id) != CHANNEL_ID:
-        await ctx.send(f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>")
+# Commande Slash pour afficher le programme (Annonce du quiz)
+@bot.tree.command(name="programme", description="Affiche le programme des matchs et les règles du concours.")
+async def programme(interaction: discord.Interaction):
+    if not check_channel(interaction):
+        await interaction.response.send_message(
+            f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>",
+            ephemeral=True
+        )
         return
     message = """**Oyé, Oyé,
 ⚽ La Ligue des Champions reprend demain avec les huitièmes de finale ! ⚽
@@ -296,9 +297,9 @@ Pénalité : Chaque match non pronostiqué à temps entraîne une pénalité de 
 
 ---
 
-🚀 Préparez-vous, la SARL reprend du service ! 🚀**"""
+🚀 Préparez-vous, la SARL reprend du service ! 🚀"""
 
-    await ctx.send(message)
+    await interaction.response.send_message(message)
 
 # Commande Slash pour voir le récapitulatif des votes
 @bot.tree.command(name="recap", description="Affiche un récapitulatif de vos votes dans le channel.")
