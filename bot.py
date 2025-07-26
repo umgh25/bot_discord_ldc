@@ -6,8 +6,6 @@ from pathlib import Path
 from keep_alive import keep_alive
 from database import *  # Importe toutes les fonctions de database.py
 import asyncio
-from typing import Optional
-from discord import app_commands
 
 # Charger les variables d'environnement à partir du fichier .env
 env_path = Path('.') / '.env'
@@ -731,12 +729,15 @@ async def reset_points_cmd(ctx, member: discord.Member = None):
 async def reset_points_error(ctx, error):
     if isinstance(error, commands.MissingPermissions):
         await ctx.send("❌ Seuls les administrateurs peuvent réinitialiser les points.")
+
 # Pour les commandes normales, ajouter un event listener
 @bot.event
 async def on_command(ctx):
     if str(ctx.channel.id) != CHANNEL_ID:
         await ctx.send(f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>")
         raise commands.CommandError("Mauvais canal")
-        
+
+keep_alive()
+
 # Lancement du bot avec le token
 bot.run(TOKEN)
