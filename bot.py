@@ -671,39 +671,57 @@ async def classement(interaction: discord.Interaction):
         print(f"Erreur dans la commande classement: {str(e)}")
         await interaction.response.send_message("❌ Une erreur s'est produite lors de la récupération du classement.", ephemeral=True)
 
-# Commande slash pour réinitialiser des points (ADMIN)
-@bot.tree.command(name="reset", description="Réinitialiser les points d'un utilisateur ou de tous (admin seulement)")
-@app_commands.describe(membre="L'utilisateur dont vous voulez réinitialiser les points")
-async def reset_slash(interaction: discord.Interaction, membre: Optional[discord.Member] = None):
-    if not check_channel(interaction):
-        await interaction.response.send_message(f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>", ephemeral=True)
+# Commande pour réinitialiser les points
+@bot.command(name="reset_points")
+@commands.has_permissions(administrator=True)
+async def reset_points_cmd(ctx, member: discord.Member = None):
+    if str(ctx.channel.id) != CHANNEL_ID:
+        await ctx.send(f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>")
         return
-
-    if not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message("❌ Seuls les administrateurs peuvent réinitialiser les points.", ephemeral=True)
-        return
-
     try:
-        if membre is None:
-            await interaction.response.send_message("⚠️ Réinitialisation de TOUS les points en cours...")
-            success, count = reset_points()
-            if success:
-                await interaction.followup.send(f"✅ Tous les points ont été réinitialisés ! ({count} points supprimés)")
-            else:
-                await interaction.followup.send("❌ Une erreur est survenue lors de la réinitialisation.")
+        if member is None:
+            # Demander confirmation pour réinitialiser tous les points
+            confirmation_message = await ctx.send("⚠️ Voulez-vous vraiment réinitialiser **TOUS** les points ?\n"
+                                               "Cette action est irréversible !\n"
+                                               "✅ = Confirmer\n"
+                                               "❌ = Annuler")
+            
+            await confirmation_message.add_reaction("✅")
+            await confirmation_message.add_reaction("❌")
+            
+            def check(reaction, user):
+                return user == ctx.author and str(reaction.emoji) in ["✅", "❌"]
+            
+            try:
+                reaction, user = await bot.wait_for('reaction_add', timeout=30.0, check=check)
+                
+                if str(reaction.emoji) == "✅":
+                    success, count = reset_points()
+                    if success:
+                        if count > 0:
+                            await ctx.send(f"✅ Tous les points ont été réinitialisés ! ({count} points supprimés)")
+                        else:
+                            await ctx.send("ℹ️ Aucun point n'était enregistré dans la base de données.")
+                    else:
+                        await ctx.send("❌ Une erreur s'est produite lors de la réinitialisation des points.")
+                else:
+                    await ctx.send("❌ Réinitialisation annulée.")
+                    
+            except TimeoutError:
+                await ctx.send("❌ Temps écoulé. Réinitialisation annulée.")
+                
         else:
-            await interaction.response.send_message(f"⚠️ Réinitialisation des points de {membre.mention} en cours...")
-            success, count = reset_points(str(membre.id))
+            # Réinitialiser les points d'un utilisateur spécifique
+            user_id = str(member.id)
+            success, count = reset_points(user_id)
+            
             if success:
-                await interaction.followup.send(f"✅ Les points de {membre.mention} ont été réinitialisés ! ({count} points supprimés)")
+                if count > 0:
+                    await ctx.send(f"✅ Les points de {member.mention} ont été réinitialisés ! ({count} points supprimés)")
+                else:
+                    await ctx.send(f"ℹ️ {member.mention} n'avait pas de points enregistrés.")
             else:
-                await interaction.followup.send(f"❌ Une erreur est survenue pour {membre.mention}.")
-    except Exception as e:
-        print(f"Erreur reset_slash: {e}")
-        if interaction.response.is_done():
-            await interaction.followup.send("❌ Une erreur s'est produite.")
-        else:
-            await interaction.response.send_message("❌ Une erreur s'est produite.", ephemeral=True)
+                await ctx.send(f"❌ Une erreur s'est produite lors de la réinitialisation des points de {member.mention}.")
                 
     except Exception as e:
         print(f"Erreur dans la commande reset_points: {str(e)}")
@@ -713,7 +731,6 @@ async def reset_slash(interaction: discord.Interaction, membre: Optional[discord
 async def reset_points_error(ctx, error):
     if isinstance(error, commands.MissingPermissions):
         await ctx.send("❌ Seuls les administrateurs peuvent réinitialiser les points.")
-
 # Pour les commandes normales, ajouter un event listener
 @bot.event
 async def on_command(ctx):
