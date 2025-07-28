@@ -497,7 +497,77 @@ async def voir_votes(interaction: discord.Interaction, member: discord.Member):
         print(f"Erreur lors de la récupération des votes: {str(e)}")
         await interaction.response.send_message(f"❌ Une erreur s'est produite lors de la récupération des votes.")
 
-# Commande pour modifier un vote existant
+# Commande slash pour modifier un vote existant
+@bot.tree.command(name="modifier_vote", description="Modifie votre vote pour un match spécifique.")
+async def modifier_vote_slash(interaction: discord.Interaction, match_id: int, team: str):
+    if not check_channel(interaction):
+        await interaction.response.send_message(
+            f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>",
+            ephemeral=True
+        )
+        return
+    user_id = str(interaction.user.id)
+    
+    try:
+        # Vérifier si le match existe
+        if match_id not in matches:
+            await interaction.response.send_message(
+                f"❌ Match {match_id} invalide. Les matchs disponibles sont :\n**Finale** : 15",
+                ephemeral=True
+            )
+            return
+
+        # Vérifier si l'utilisateur a déjà voté pour ce match
+        result = supabase.table("votes").select("*").eq("user_id", user_id).eq("match_id", match_id).execute()
+        
+        if not result.data:
+            await interaction.response.send_message(
+                f"❌ Vous n'avez pas encore voté pour le match {match_id}. Utilisez `/vote` pour voter.",
+                ephemeral=True
+            )
+            return
+
+        team1, team2 = matches[match_id]
+        ancien_vote = result.data[0]["choice"]
+
+        # Normaliser le nom de l'équipe pour la comparaison
+        team = team.strip()
+        if team.lower() not in [team1.lower(), team2.lower()]:
+            await interaction.response.send_message(
+                f"❌ Équipe invalide. Pour le match {match_id}, vous pouvez seulement voter pour :\n- **{team1}**\n- **{team2}**",
+                ephemeral=True
+            )
+            return
+
+        # Si l'utilisateur vote pour la même équipe
+        if team.lower() == ancien_vote.lower():
+            await interaction.response.send_message(
+                f"ℹ️ Vous avez déjà voté pour **{ancien_vote}** dans ce match.",
+                ephemeral=True
+            )
+            return
+
+        # Trouver le nom exact de l'équipe (pour garder la casse correcte)
+        team = team1 if team.lower() == team1.lower() else team2
+
+        # Modifier le vote dans Supabase
+        supabase.table("votes").update({"choice": team}).eq("user_id", user_id).eq("match_id", match_id).execute()
+
+        await interaction.response.send_message(
+            f"✅ {interaction.user.mention}, votre vote a été modifié !\n"
+            f"**Match {match_id}** : {team1} vs {team2}\n"
+            f"└─ Ancien vote : **{ancien_vote}**\n"
+            f"└─ Nouveau vote : **{team}** 🔄"
+        )
+
+    except Exception as e:
+        print(f"Erreur lors de la modification du vote: {str(e)}")
+        await interaction.response.send_message(
+            f"❌ Une erreur s'est produite lors de la modification du vote.",
+            ephemeral=True
+        )
+
+# Commande pour modifier un vote existant (ancienne version avec !)
 @bot.command(name="modifier_vote")
 async def modifier_vote(ctx, match_id: int = None, *, team: str = None):
     if str(ctx.channel.id) != CHANNEL_ID:
