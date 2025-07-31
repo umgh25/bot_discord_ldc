@@ -81,15 +81,25 @@ async def on_ready():
 def check_channel(interaction: discord.Interaction) -> bool:
     return str(interaction.channel_id) == CHANNEL_ID
 
-# Commande Slash pour l'aide sur le vote
+# =============================================================================
+# COMMANDES SLASH - AIDE ET INFORMATIONS
+# =============================================================================
+
 @bot.tree.command(name="help_vote", description="Affiche le guide des commandes de vote.")
 async def help_vote(interaction: discord.Interaction):
+    """
+    Commande d'aide qui affiche le guide complet des commandes disponibles.
+    Inclut toutes les commandes de vote, consultation et administration.
+    """
+    # Vérifier que la commande est utilisée dans le bon canal
     if not check_channel(interaction):
         await interaction.response.send_message(
             f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>",
             ephemeral=True
         )
         return
+    
+    # Construire le message d'aide avec toutes les commandes
     help_message = """**🎮 GUIDE DES COMMANDES 🎮**
 
 **📝 Commandes principales :**
@@ -132,19 +142,20 @@ async def help_vote(interaction: discord.Interaction):
 
 **📋 Liste des matchs disponibles :**"""
 
-    # Ajouter la liste des matchs
+    # Ajouter dynamiquement la liste des matchs disponibles
     for match_id, match in matches.items():
         team1, team2 = match
         help_message += f"\n**Match {match_id}** : {team1} vs {team2}"
 
+    # Ajouter les rappels importants
     help_message += "\n\n**⚠️ Rappels importants :**"
     help_message += "\n• Vous pouvez modifier vos votes à tout moment avant le début du match"
     help_message += "\n• Les votes non effectués avant le début du match entraînent une pénalité de -1 point"
     help_message += "\n• Utilisez les noms exacts des équipes (la casse n'est pas importante)"
     help_message += "\n• Seuls les administrateurs peuvent attribuer ou réinitialiser les points"
 
-    # 🔥 Correction ici : suppression de `ephemeral=True`
-    await interaction.response.send_message(help_message)  # Visible par tout le monde
+    # Envoyer le message d'aide (visible par tout le monde)
+    await interaction.response.send_message(help_message)
 
 
 @bot.tree.command(name="vote", description="Voter pour une équipe dans un match spécifique")
@@ -801,5 +812,6 @@ async def on_command(ctx):
 
 keep_alive()
 
-# Lancement du bot avec le token
+
 bot.run(TOKEN)
+
