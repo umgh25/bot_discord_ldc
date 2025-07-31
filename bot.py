@@ -33,13 +33,7 @@ if not CHANNEL_ID:
 log_dev("✅ Token Discord chargé.")
 log_dev(f"Longueur : {len(TOKEN)}")
 log_dev(f"Début : {TOKEN[:10]}...")
-
 log_dev("✅ CHANNEL_ID chargé.")
-
-# Après la récupération du TOKEN, ajouter :
-CHANNEL_ID = os.getenv('CHANNEL_ID')
-if not CHANNEL_ID:
-    raise ValueError("Le CHANNEL_ID n'est pas configuré dans le .env")
 
 # Créer les intents nécessaires
 intents = discord.Intents.default()
@@ -49,13 +43,14 @@ intents.message_content = True
 # Créer l'instance du bot avec les intents
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Après la définition des matches, ajouter :
 # Dictionnaire pour gérer les verrous des votes
 vote_locks = {}
 
 # Définir les phases de la compétition
 MATCHES_PHASES = {
-    
+    "finale": {
+        15: ("Club Bruges", "Aston Villa")
+    }
 }
 
 # Pour les commandes actives, n'utiliser que les matchs actuels
@@ -726,8 +721,6 @@ async def classement(interaction: discord.Interaction):
 
 
 # Commande pour réinitialiser les points (remplacée par la version slash ci-dessous)
-
-from discord import app_commands
 
 @bot.tree.command(name="reset_points", description="Réinitialise les points d'un utilisateur ou de tous les utilisateurs (admin seulement)")
 @app_commands.describe(membre="Utilisateur à réinitialiser (laisser vide pour tout réinitialiser)")
