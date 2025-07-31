@@ -147,42 +147,61 @@ async def help_vote(interaction: discord.Interaction):
     await interaction.response.send_message(help_message)  # Visible par tout le monde
 
 
-@bot.command()
-async def vote(ctx, match_id: int = None, *, team: str = None):
-    if str(ctx.channel.id) != CHANNEL_ID:
-        await ctx.send(f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>")
+@bot.tree.command(name="vote", description="Voter pour une équipe dans un match spécifique")
+@app_commands.describe(
+    match_id="Numéro du match (ex: 15 pour la finale)",
+    team="Nom de l'équipe pour laquelle voter"
+)
+async def vote_slash(interaction: discord.Interaction, match_id: int, team: str):
+    if not check_channel(interaction):
+        await interaction.response.send_message(
+            f"❌ Cette commande ne peut être utilisée que dans le canal <#{CHANNEL_ID}>",
+            ephemeral=True
+        )
         return
         
     # Vérifier si l'utilisateur a un vote en cours
-    user_id = str(ctx.author.id)
+    user_id = str(interaction.user.id)
     if user_id in vote_locks:
-        await ctx.send("⚠️ Veuillez attendre que votre vote précédent soit terminé.")
+        await interaction.response.send_message(
+            "⚠️ Veuillez attendre que votre vote précédent soit terminé.",
+            ephemeral=True
+        )
         return
         
     vote_locks[user_id] = True
     try:
-        print(f"=== DÉBUT COMMANDE VOTE ===")
+        print(f"=== DÉBUT COMMANDE VOTE SLASH ===")
         print(f"Match ID: {match_id}")
         print(f"Team: {team}")
         
         # Vérifications habituelles...
         if match_id is None or team is None:
-            await ctx.send("❌ Format incorrect. Utilisez `!vote <numéro du match> <nom de l'équipe>`")
+            await interaction.response.send_message(
+                "❌ Format incorrect. Utilisez `/vote <numéro du match> <nom de l'équipe>`",
+                ephemeral=True
+            )
             return
         
         # Mise à jour de la vérification pour inclure les nouveaux matchs
         if match_id not in matches:
-            await ctx.send(f"❌ Match {match_id} invalide. Les matchs disponibles sont :\n"
-                         "**Finale** : 15")
+            await interaction.response.send_message(
+                f"❌ Match {match_id} invalide. Les matchs disponibles sont :\n"
+                "**Finale** : 15",
+                ephemeral=True
+            )
             return
 
         team1, team2 = matches[match_id]
         team = team.strip()
         
         if team.lower() not in [team1.lower(), team2.lower()]:
-            await ctx.send(f"❌ Équipe invalide. Pour le match {match_id}, vous pouvez seulement voter pour :\n"
-                         f"- **{team1}**\n"
-                         f"- **{team2}**")
+            await interaction.response.send_message(
+                f"❌ Équipe invalide. Pour le match {match_id}, vous pouvez seulement voter pour :\n"
+                f"- **{team1}**\n"
+                f"- **{team2}**",
+                ephemeral=True
+            )
             return
         
         team = team1 if team.lower() == team1.lower() else team2
@@ -193,19 +212,27 @@ async def vote(ctx, match_id: int = None, *, team: str = None):
         success = save_vote(user_id, match_id, team)
         
         if success:
-            await ctx.send(f"✅ {ctx.author.mention}, tu as voté pour **{team}** dans le match **{team1}** vs **{team2}**.")
+            await interaction.response.send_message(
+                f"✅ {interaction.user.mention}, tu as voté pour **{team}** dans le match **{team1}** vs **{team2}**."
+            )
         else:
-            await ctx.send(f"❌ {ctx.author.mention}, il y a eu une erreur lors de l'enregistrement de ton vote.")
+            await interaction.response.send_message(
+                f"❌ {interaction.user.mention}, il y a eu une erreur lors de l'enregistrement de ton vote.",
+                ephemeral=True
+            )
             
     except Exception as e:
-        print(f"Erreur lors du vote: {str(e)}")
-        await ctx.send(f"❌ Une erreur s'est produite lors du vote.")
+        print(f"Erreur lors du vote (slash): {str(e)}")
+        await interaction.response.send_message(
+            f"❌ Une erreur s'est produite lors du vote.",
+            ephemeral=True
+        )
     finally:
         # Toujours libérer le verrou
         if user_id in vote_locks:
             del vote_locks[user_id]
     
-    print("=== FIN COMMANDE VOTE ===")
+    print("=== FIN COMMANDE VOTE SLASH ===")
 
 
 # Commande !supprimer_vote
