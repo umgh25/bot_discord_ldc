@@ -1,5 +1,6 @@
 import os
 from supabase import create_client
+from functools import wraps
 
 # Configuration Supabase avec plus de logs
 print("Initialisation de Supabase...")
@@ -11,216 +12,220 @@ print(f"Clé configurée: {SUPABASE_KEY[:20]}...") # Affiche le début de la cl�
 # Initialisation du client Supabase
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-def create_db():
-    # Vérifier la connexion à Supabase
-    try:
-        # Cette fonction vérifie simplement la connexion
-        # Les tables sont créées via l'interface Supabase ou avec des requêtes SQL
-        supabase.table("votes").select("*").limit(1).execute()
-        print("Connexion à Supabase réussie")
-    except Exception as e:
-        print(f"Erreur de connexion à Supabase: {e}")
-        # Vous pouvez créer les tables ici si nécessaire avec des requêtes SQL
-        # supabase.query("CREATE TABLE IF NOT EXISTS votes...")
+# =============================================================================
+# CONSTANTES ET UTILITAIRES
+# =============================================================================
 
-def save_vote(user_id, match_id, choice):
-    try:
-        print(f"=== DÉBUT SAUVEGARDE VOTE ===")
+# Tables de la base de données
+VOTES_TABLE = "votes"
+POINTS_TABLE = "points"
+LEADERBOARD_TABLE = "leaderboard"
+SETTINGS_TABLE = "settings"
+
+class DatabaseLogger:
+    """Classe pour centraliser les logs de base de données"""
+    
+    @staticmethod
+    def log_function_start(func_name: str):
+        print(f"=== DÉBUT {func_name.upper()} ===")
+    
+    @staticmethod
+    def log_function_end(func_name: str):
+        print(f"=== FIN {func_name.upper()} ===")
+    
+    @staticmethod
+    def log_error(func_name: str, error: Exception):
+        print(f"!!! ERREUR DANS {func_name.upper()} !!!")
+        print(f"Type d'erreur: {type(error)}")
+        print(f"Message d'erreur: {str(error)}")
+        print("=== FIN ERREUR ===")
+    
+    @staticmethod
+    def log_data_received(user_id: str, match_id: int, **kwargs):
         print(f"User ID: {user_id}")
         print(f"Match ID: {match_id}")
-        print(f"Choice: {choice}")
-        
-        # 1. D'abord, supprimer tout vote existant pour cet utilisateur et ce match
-        supabase.table("votes").delete().eq("user_id", user_id).eq("match_id", match_id).execute()
-        
-        # 2. Ensuite, insérer le nouveau vote
-        result = supabase.table("votes").insert({
-            "user_id": user_id,
-            "match_id": match_id,
-            "choice": choice
-        }).execute()
-        
-        print(f"Vote enregistré avec succès")
-        print("=== FIN SAUVEGARDE VOTE ===")
-        return True
-        
-    except Exception as e:
-        print(f"!!! ERREUR SAUVEGARDE VOTE !!!")
-        print(f"Type d'erreur: {type(e)}")
-        print(f"Message d'erreur: {str(e)}")
-        print("=== FIN ERREUR ===")
-        return False
+        for key, value in kwargs.items():
+            print(f"- {key}: {value}")
 
-# Fonction pour récupérer les votes d'un match
+def handle_db_errors(default_return=None):
+    """Décorateur pour gérer les erreurs de base de données de manière uniforme"""
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                DatabaseLogger.log_error(func.__name__, e)
+                return default_return
+        return wrapper
+    return decorator
+
+def upsert_record(table: str, data: dict, conditions: dict):
+    """Insère ou met à jour un enregistrement dans une table"""
+    existing = supabase.table(table).select("*").eq(**conditions).execute()
+    if existing.data:
+        return supabase.table(table).update(data).eq(**conditions).execute()
+    else:
+        return supabase.table(table).insert(data).execute()
+
+def count_records(table: str, conditions: dict = None):
+    """Compte les enregistrements dans une table avec conditions optionnelles"""
+    query = supabase.table(table).select("*", count="exact")
+    if conditions:
+        for key, value in conditions.items():
+            query = query.eq(key, value)
+    result = query.execute()
+    return len(result.data) if result.data else 0
+
+# =============================================================================
+# FONCTIONS DE BASE DE DONNÉES
+# =============================================================================
+
+@handle_db_errors()
+def create_db():
+    """Vérifier la connexion à Supabase"""
+    # Cette fonction vérifie simplement la connexion
+    # Les tables sont créées via l'interface Supabase ou avec des requêtes SQL
+    supabase.table(VOTES_TABLE).select("*").limit(1).execute()
+    print("Connexion à Supabase réussie")
+
+@handle_db_errors(default_return=False)
+def save_vote(user_id, match_id, choice):
+    """Sauvegarde un vote en remplaçant l'ancien s'il existe"""
+    DatabaseLogger.log_function_start("SAUVEGARDE VOTE")
+    DatabaseLogger.log_data_received(user_id, match_id, Choice=choice)
+    
+    # 1. D'abord, supprimer tout vote existant pour cet utilisateur et ce match
+    supabase.table(VOTES_TABLE).delete().eq("user_id", user_id).eq("match_id", match_id).execute()
+    
+    # 2. Ensuite, insérer le nouveau vote
+    result = supabase.table(VOTES_TABLE).insert({
+        "user_id": user_id,
+        "match_id": match_id,
+        "choice": choice
+    }).execute()
+    
+    print(f"Vote enregistré avec succès")
+    DatabaseLogger.log_function_end("SAUVEGARDE VOTE")
+    return True
+
+@handle_db_errors(default_return=[])
 def get_votes(match_id):
-    try:
-        result = supabase.table("votes").select("user_id, choice").eq("match_id", match_id).execute()
-        # Convertir le résultat en format similaire à SQLite (liste de tuples)
-        return [(item["user_id"], item["choice"]) for item in result.data]
-    except Exception as e:
-        print(f"Erreur lors de la récupération des votes: {e}")
-        return []
+    """Récupère les votes d'un match spécifique"""
+    result = supabase.table(VOTES_TABLE).select("user_id, choice").eq("match_id", match_id).execute()
+    # Convertir le résultat en format similaire à SQLite (liste de tuples)
+    return [(item["user_id"], item["choice"]) for item in result.data]
 
+@handle_db_errors(default_return=False)
 def update_leaderboard(user_id: str) -> bool:
-    try:
-        print(f"=== DÉBUT MISE À JOUR LEADERBOARD POUR {user_id} ===")
-        
-        # Calculer le total des points pour cet utilisateur
-        points_result = supabase.table("points").select("points").eq("user_id", user_id).execute()
-        total_points = sum(entry['points'] for entry in points_result.data) if points_result.data else 0
-        
-        print(f"Total des points calculé: {total_points}")
-        
-        # Vérifier si l'utilisateur existe déjà dans le leaderboard
-        existing = supabase.table("leaderboard").select("*").eq("user_id", user_id).execute()
-        
-        if existing.data:
-            # Mettre à jour les points
-            result = supabase.table("leaderboard").update({
-                "points": total_points
-            }).eq("user_id", user_id).execute()
-        else:
-            # Créer une nouvelle entrée
-            result = supabase.table("leaderboard").insert({
-                "user_id": user_id,
-                "points": total_points
-            }).execute()
-            
-        print(f"Leaderboard mis à jour pour {user_id} avec {total_points} points")
-        print("=== FIN MISE À JOUR LEADERBOARD ===")
-        return True
-        
-    except Exception as e:
-        print(f"!!! ERREUR MISE À JOUR LEADERBOARD !!!")
-        print(f"Type d'erreur: {type(e)}")
-        print(f"Message d'erreur: {str(e)}")
-        print("=== FIN ERREUR ===")
-        return False
+    """Met à jour le leaderboard pour un utilisateur"""
+    DatabaseLogger.log_function_start(f"MISE À JOUR LEADERBOARD POUR {user_id}")
+    
+    # Calculer le total des points pour cet utilisateur
+    points_result = supabase.table(POINTS_TABLE).select("points").eq("user_id", user_id).execute()
+    total_points = sum(entry['points'] for entry in points_result.data) if points_result.data else 0
+    
+    print(f"Total des points calculé: {total_points}")
+    
+    # Insérer ou mettre à jour le leaderboard
+    upsert_record(
+        table=LEADERBOARD_TABLE,
+        data={"points": total_points},
+        conditions={"user_id": user_id}
+    )
+    
+    print(f"Leaderboard mis à jour pour {user_id} avec {total_points} points")
+    DatabaseLogger.log_function_end("MISE À JOUR LEADERBOARD")
+    return True
 
+@handle_db_errors(default_return=False)
 def add_points(user_id: str, match_id: int, points: int) -> bool:
-    try:
-        print(f"=== DÉBUT AJOUT POINTS DANS LA BDD ===")
-        print(f"Données reçues:")
-        print(f"- User ID: {user_id}")
-        print(f"- Match ID: {match_id}")
-        print(f"- Points: {points}")
+    """Ajoute ou met à jour les points d'un utilisateur pour un match"""
+    DatabaseLogger.log_function_start("AJOUT POINTS DANS LA BDD")
+    DatabaseLogger.log_data_received(user_id, match_id, Points=points)
+    
+    # Insérer ou mettre à jour les points
+    upsert_record(
+        table=POINTS_TABLE,
+        data={
+            "user_id": str(user_id),
+            "match_id": int(match_id),
+            "points": int(points)
+        },
+        conditions={"user_id": user_id, "match_id": match_id}
+    )
+    
+    # Mettre à jour le leaderboard
+    update_leaderboard(user_id)
+    
+    DatabaseLogger.log_function_end("AJOUT POINTS DANS LA BDD")
+    return True
+
+@handle_db_errors(default_return=[])
+def get_leaderboard():
+    """Récupère le classement général"""
+    DatabaseLogger.log_function_start("RÉCUPÉRATION CLASSEMENT")
+    
+    # Récupérer directement depuis la table leaderboard, triée par points décroissants
+    result = supabase.table(LEADERBOARD_TABLE).select("*").order("points", desc=True).execute()
+    
+    print(f"Résultat du classement: {result.data if hasattr(result, 'data') else result}")
+    DatabaseLogger.log_function_end("RÉCUPÉRATION CLASSEMENT")
+    return result.data if result.data else []
+
+@handle_db_errors()
+def set_channel(channel_id):
+    """Enregistre l'ID du canal de votes"""
+    # INSERT OR REPLACE équivalent dans Supabase
+    supabase.table(SETTINGS_TABLE).upsert({"id": 1, "channel_id": channel_id}).execute()
+
+@handle_db_errors(default_return=None)
+def get_channel():
+    """Récupère l'ID du canal de votes"""
+    result = supabase.table(SETTINGS_TABLE).select("channel_id").eq("id", 1).execute()
+    if result.data and len(result.data) > 0:
+        return result.data[0]["channel_id"]
+    return None
+
+@handle_db_errors(default_return=(False, 0))
+def reset_points(user_id: str = None) -> tuple[bool, int]:
+    """Réinitialise les points d'un utilisateur ou de tous les utilisateurs"""
+    DatabaseLogger.log_function_start("RESET POINTS")
+    
+    if user_id:
+        print(f"Réinitialisation des points pour l'utilisateur: {user_id}")
+        # Compter les points à supprimer
+        points_count = count_records(POINTS_TABLE, {"user_id": user_id})
         
-        # Vérifier si des points existent déjà pour cet utilisateur et ce match
-        existing = supabase.table("points").select("*").eq("user_id", user_id).eq("match_id", match_id).execute()
-        
-        if existing.data:
-            # Si des points existent déjà, on les met à jour
-            print("Points existants trouvés, mise à jour...")
-            result = supabase.table("points").update({
-                "points": int(points)
-            }).eq("user_id", user_id).eq("match_id", match_id).execute()
-        else:
-            # Si pas de points existants, on en crée
-            print("Pas de points existants, création...")
-            result = supabase.table("points").insert({
-                "user_id": str(user_id),
-                "match_id": int(match_id),
-                "points": int(points)
-            }).execute()
-        
+        if points_count == 0:
+            print("Aucun point trouvé pour cet utilisateur")
+            return True, 0
+            
+        # Supprimer les points
+        supabase.table(POINTS_TABLE).delete().eq("user_id", user_id).execute()
         # Mettre à jour le leaderboard
         update_leaderboard(user_id)
         
-        print("=== FIN AJOUT POINTS DANS LA BDD ===")
-        return True
+        print(f"Nombre de points supprimés: {points_count}")
         
-    except Exception as e:
-        print(f"!!! ERREUR DANS ADD_POINTS !!!")
-        print(f"Type d'erreur: {type(e)}")
-        print(f"Message d'erreur: {str(e)}")
-        print("=== FIN ERREUR ===")
-        return False
-
-# Fonction pour récupérer le classement
-def get_leaderboard():
-    try:
-        print("=== DÉBUT RÉCUPÉRATION CLASSEMENT ===")
+    else:
+        print("Réinitialisation de tous les points")
+        # Compter le total des points
+        points_count = count_records(POINTS_TABLE)
         
-        # Récupérer directement depuis la table leaderboard, triée par points décroissants
-        result = supabase.table("leaderboard").select("*").order("points", desc=True).execute()
-        
-        print(f"Résultat du classement: {result.data if hasattr(result, 'data') else result}")
-        print("=== FIN RÉCUPÉRATION CLASSEMENT ===")
-        return result.data if result.data else []
-        
-    except Exception as e:
-        print(f"!!! ERREUR DANS GET_LEADERBOARD !!!")
-        print(f"Type d'erreur: {type(e)}")
-        print(f"Message d'erreur: {str(e)}")
-        print("=== FIN ERREUR ===")
-        return []
-
-# Fonction pour enregistrer le canal de votes
-def set_channel(channel_id):
-    try:
-        # INSERT OR REPLACE équivalent dans Supabase
-        supabase.table("settings").upsert({"id": 1, "channel_id": channel_id}).execute()
-    except Exception as e:
-        print(f"Erreur lors de l'enregistrement du canal: {e}")
-
-# Fonction pour récupérer l'ID du canal de votes
-def get_channel():
-    try:
-        result = supabase.table("settings").select("channel_id").eq("id", 1).execute()
-        if result.data and len(result.data) > 0:
-            return result.data[0]["channel_id"]
-        return None
-    except Exception as e:
-        print(f"Erreur lors de la récupération du canal: {e}")
-        return None
-
-def reset_points(user_id: str = None) -> tuple[bool, int]:
-    try:
-        print(f"=== DÉBUT RESET POINTS ===")
-        
-        if user_id:
-            print(f"Réinitialisation des points pour l'utilisateur: {user_id}")
-            # D'abord, compter combien de points vont être supprimés
-            count_result = supabase.table("points").select("*", count="exact").eq("user_id", user_id).execute()
-            points_count = len(count_result.data) if count_result.data else 0
+        if points_count == 0:
+            print("Aucun point trouvé dans la base de données")
+            return True, 0
             
-            if points_count == 0:
-                print("Aucun point trouvé pour cet utilisateur")
-                return True, 0
-                
-            # Supprimer les points
-            result = supabase.table("points").delete().eq("user_id", user_id).execute()
-            # Mettre à jour le leaderboard
-            update_leaderboard(user_id)
-            
-            print(f"Nombre de points supprimés: {points_count}")
-            
-        else:
-            print("Réinitialisation de tous les points")
-            # Compter d'abord le total des points
-            count_result = supabase.table("points").select("*", count="exact").execute()
-            points_count = len(count_result.data) if count_result.data else 0
-            
-            if points_count == 0:
-                print("Aucun point trouvé dans la base de données")
-                return True, 0
-                
-            # Supprimer tous les points
-            result = supabase.table("points").delete().neq("user_id", "dummy").execute()
-            # Vider le leaderboard
-            supabase.table("leaderboard").delete().neq("user_id", "dummy").execute()
-            
-            print(f"Nombre total de points supprimés: {points_count}")
+        # Supprimer tous les points
+        supabase.table(POINTS_TABLE).delete().neq("user_id", "dummy").execute()
+        # Vider le leaderboard
+        supabase.table(LEADERBOARD_TABLE).delete().neq("user_id", "dummy").execute()
         
-        print("=== FIN RESET POINTS ===")
-        return True, points_count
-        
-    except Exception as e:
-        print(f"!!! ERREUR DANS RESET_POINTS !!!")
-        print(f"Type d'erreur: {type(e)}")
-        print(f"Message d'erreur: {str(e)}")
-        print("=== FIN ERREUR ===")
-        return False, 0
+        print(f"Nombre total de points supprimés: {points_count}")
+    
+    DatabaseLogger.log_function_end("RESET POINTS")
+    return True, points_count
 
 # Vérification de la connexion au démarrage
 create_db()
