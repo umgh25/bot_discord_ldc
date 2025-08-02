@@ -1,2 +1,2 @@
 #!/bin/bash
-/usr/local/bin/python3 bot.py 
+/usr/local/bin/python3 main.py 
