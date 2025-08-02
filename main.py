@@ -11,6 +11,7 @@ sys.path.append('./config')
 from src.bot.main import run_bot
 from utils.keep_alive import keep_alive
 
+# Le main.py est le point d'entrée principal du bot.
 if __name__ == "__main__":
     print("🚀 Démarrage du Bot Discord LDC...")
     
