@@ -10,9 +10,10 @@ from config.settings import MATCHES
 from src.database.operations import add_points, get_leaderboard, reset_points
 from ..utils.helpers import check_channel
 
+# Commandes d'administration
 def setup_admin_commands(bot):
     """Configure toutes les commandes d'administration"""
-    
+    # Commande pour attribuer des points à un utilisateur
     @bot.tree.command(name="points", description="Attribuer des points à un utilisateur (admin seulement)")
     async def point_slash(interaction: discord.Interaction, membre: discord.Member, match_id: int, point_value: int):
         # Vérifier le canal
@@ -65,6 +66,7 @@ def setup_admin_commands(bot):
                 ephemeral=True
             )
 
+    # Commande pour afficher le classement des points
     @bot.tree.command(name="classement", description="Affiche le classement des points.")
     async def classement(interaction: discord.Interaction):
         if not check_channel(interaction):
@@ -127,6 +129,7 @@ def setup_admin_commands(bot):
             print(f"Erreur dans la commande classement: {str(e)}")
             await interaction.response.send_message("❌ Une erreur s'est produite lors de la récupération du classement.", ephemeral=True)
 
+    # Commande pour réinitialiser les points d'un utilisateur ou de tous les utilisateurs
     @bot.tree.command(name="reset_points", description="Réinitialise les points d'un utilisateur ou de tous les utilisateurs (admin seulement)")
     @app_commands.describe(membre="Utilisateur à réinitialiser (laisser vide pour tout réinitialiser)")
     async def reset_points_slash(interaction: discord.Interaction, membre: discord.Member = None):
