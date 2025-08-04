@@ -12,7 +12,7 @@ from ..utils.helpers import check_channel, format_match_list
 
 def setup_info_commands(bot):
     """Configure toutes les commandes d'information"""
-    
+    # Commande d'aide pour les commandes de vote
     @bot.tree.command(name="help_vote", description="Affiche le guide des commandes de vote.")
     async def help_vote(interaction: discord.Interaction):
         """
@@ -83,6 +83,7 @@ def setup_info_commands(bot):
         # Envoyer le message d'aide (visible par tout le monde)
         await interaction.response.send_message(help_message)
 
+    # Commande pour afficher le programme des matchs et les règles du concours
     @bot.tree.command(name="programme", description="Affiche le programme des matchs et les règles du concours.")
     async def programme(interaction: discord.Interaction):
         if not check_channel(interaction):
@@ -145,6 +146,7 @@ Pénalité : Chaque match non pronostiqué à temps entraîne une pénalité de 
 
         await interaction.response.send_message(message)
 
+    # Commande pour afficher le récapitulatif de vos votes dans le channel
     @bot.tree.command(name="recap", description="Affiche un récapitulatif de vos votes dans le channel.")
     async def recap(interaction: discord.Interaction):
         if not check_channel(interaction):
@@ -212,6 +214,7 @@ Pénalité : Chaque match non pronostiqué à temps entraîne une pénalité de 
                 ephemeral=False
             )
 
+    # Commande pour afficher un résumé global des votes avec les votants
     @bot.tree.command(name="all_votes", description="Affiche un résumé global des votes avec les votants")
     async def all_votes(interaction: discord.Interaction):
         if not check_channel(interaction):
@@ -282,6 +285,7 @@ Pénalité : Chaque match non pronostiqué à temps entraîne une pénalité de 
             print(f"Erreur: {e}")
             await interaction.response.send_message("❌ Erreur lors de la récupération des votes.", ephemeral=True)
 
+    # Commande pour afficher les votes d'un utilisateur spécifique
     @bot.tree.command(name="voir_votes", description="Affiche les votes d'un utilisateur spécifique.")
     async def voir_votes(interaction: discord.Interaction, member: discord.Member):
         if not check_channel(interaction):
