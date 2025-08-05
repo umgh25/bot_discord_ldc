@@ -16,7 +16,7 @@ vote_locks = {}
 
 def setup_vote_commands(bot):
     """Configure toutes les commandes de vote"""
-    
+    # Commande de vote
     @bot.tree.command(name="vote", description="Voter pour une équipe dans un match spécifique")
     @app_commands.describe(
         match_id="Numéro du match (ex: 15 pour la finale)",
@@ -101,6 +101,7 @@ def setup_vote_commands(bot):
         
         print("=== FIN COMMANDE VOTE SLASH ===")
 
+    # Commande de suppression de vote
     @bot.tree.command(name="supprimer_vote", description="Supprime votre vote pour un match spécifique.")
     async def supprimer_vote(interaction: discord.Interaction, match_id: int):
         if not check_channel(interaction):
@@ -133,6 +134,7 @@ def setup_vote_commands(bot):
             print(f"Erreur lors de la suppression du vote: {str(e)}")
             await interaction.response.send_message(f"❌ Une erreur s'est produite lors de la suppression du vote.")
 
+    # Commande de modification de vote
     @bot.tree.command(name="modifier_vote", description="Modifie votre vote pour un match spécifique.")
     async def modifier_vote_slash(interaction: discord.Interaction, match_id: int, team: str):
         if not check_channel(interaction):
