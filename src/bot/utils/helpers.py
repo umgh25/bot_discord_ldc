@@ -1,17 +1,19 @@
 import sys
 sys.path.append('../../../config')
 from config.settings import CHANNEL_ID, MATCHES
-
+# Fonction pour vérifier si la commande est utilisée dans le bon canal
 def check_channel(interaction) -> bool:
     """Vérifie si la commande est utilisée dans le bon canal"""
     return str(interaction.channel_id) == CHANNEL_ID
 
+# Fonction pour récupérer les informations d'un match
 def get_match_info(match_id):
     """Récupère les informations d'un match"""
     if match_id in MATCHES:
         return MATCHES[match_id]
     return None
 
+# Fonction pour valider si une équipe est valide pour un match donné
 def validate_team(match_id, team):
     """Valide si une équipe est valide pour un match donné"""
     match_info = get_match_info(match_id)
@@ -28,6 +30,7 @@ def validate_team(match_id, team):
     exact_team = team1 if team.lower() == team1.lower() else team2
     return True, team1, team2, exact_team
 
+# Fonction pour formater la liste des matchs disponibles
 def format_match_list():
     """Formate la liste des matchs disponibles"""
     match_list = ""
