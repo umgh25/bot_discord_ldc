@@ -12,7 +12,7 @@ print(f"Clé configurée: {SUPABASE_KEY[:20]}...") if SUPABASE_KEY else print("C
 
 # Initialisation du client Supabase
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-
+# Classe pour centraliser les logs de base de données
 class DatabaseLogger:
     """Classe pour centraliser les logs de base de données"""
     
@@ -37,7 +37,7 @@ class DatabaseLogger:
         print(f"Match ID: {match_id}")
         for key, value in kwargs.items():
             print(f"- {key}: {value}")
-
+# Décorateur pour gérer les erreurs de base de données de manière uniforme
 def handle_db_errors(default_return=None):
     """Décorateur pour gérer les erreurs de base de données de manière uniforme"""
     def decorator(func):
@@ -50,7 +50,7 @@ def handle_db_errors(default_return=None):
                 return default_return
         return wrapper
     return decorator
-
+# Fonction pour insérer ou mettre à jour un enregistrement dans une table
 def upsert_record(table: str, data: dict, conditions: dict):
     """Insère ou met à jour un enregistrement dans une table"""
     existing = supabase.table(table).select("*").eq(**conditions).execute()
@@ -58,7 +58,7 @@ def upsert_record(table: str, data: dict, conditions: dict):
         return supabase.table(table).update(data).eq(**conditions).execute()
     else:
         return supabase.table(table).insert(data).execute()
-
+# Fonction pour compter les enregistrements dans une table avec conditions optionnelles
 def count_records(table: str, conditions: dict = None):
     """Compte les enregistrements dans une table avec conditions optionnelles"""
     query = supabase.table(table).select("*", count="exact")
