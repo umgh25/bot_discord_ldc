@@ -14,7 +14,7 @@ def create_db():
     # Les tables sont créées via l'interface Supabase ou avec des requêtes SQL
     supabase.table(VOTES_TABLE).select("*").limit(1).execute()
     print("Connexion à Supabase réussie")
-
+    # Créer les tables si elles n'existent pas
 @handle_db_errors(default_return=False)
 def save_vote(user_id, match_id, choice):
     """Sauvegarde un vote en remplaçant l'ancien s'il existe"""
@@ -59,7 +59,7 @@ def update_leaderboard(user_id: str) -> bool:
         data={"points": total_points},
         conditions={"user_id": user_id}
     )
-    
+    # Supprimer les points
     print(f"Leaderboard mis à jour pour {user_id} avec {total_points} points")
     DatabaseLogger.log_function_end("MISE À JOUR LEADERBOARD")
     return True
@@ -131,7 +131,7 @@ def reset_points(user_id: str = None) -> tuple[bool, int]:
         supabase.table(POINTS_TABLE).delete().eq("user_id", user_id).execute()
         # Mettre à jour le leaderboard
         update_leaderboard(user_id)
-        
+        # Supprimer les votes
         print(f"Nombre de points supprimés: {points_count}")
         
     else:
@@ -149,7 +149,7 @@ def reset_points(user_id: str = None) -> tuple[bool, int]:
         supabase.table(LEADERBOARD_TABLE).delete().neq("user_id", "dummy").execute()
         
         print(f"Nombre total de points supprimés: {points_count}")
-    
+        # Supprimer les votes
     DatabaseLogger.log_function_end("RESET POINTS")
     return True, points_count
 
