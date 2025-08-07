@@ -36,10 +36,10 @@ def validate_config():
     """Valide la configuration et lève une exception si des variables critiques sont manquantes"""
     if not DISCORD_TOKEN:
         raise ValueError("❌ Le token Discord n'est pas défini dans le fichier .env")
-    
+    # Vérification du channel_id
     if not CHANNEL_ID:
         raise ValueError("❌ Le CHANNEL_ID n'est pas défini dans le fichier .env")
-    
+    # Vérification des variables Supabase
     if not SUPABASE_URL or not SUPABASE_KEY:
         raise ValueError("❌ Les variables Supabase ne sont pas définies dans le fichier .env")
 
