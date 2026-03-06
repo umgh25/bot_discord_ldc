@@ -10,6 +10,10 @@ from config.settings import MATCHES, MATCHES_PHASES
 from src.database.operations import supabase
 from ..utils.helpers import check_channel, format_match_list
 
+PHASE_LABELS = {
+    "8e_finale_aller": "8e de finale (aller)",
+}
+
 def setup_info_commands(bot):
     """Configure toutes les commandes d'information"""
     # Commande d'aide pour les commandes de vote
@@ -33,11 +37,11 @@ def setup_info_commands(bot):
 **📝 Commandes principales :**
 `/vote <numéro du match> <nom de l'équipe>`
 └─ Pour voter pour une équipe
-└─ Exemple : `/vote 1 Club Bruges`
+└─ Exemple : `/vote 1 Galatasaray`
 
 `/modifier_vote <numéro du match> <nom de l'équipe>`
 └─ Pour modifier un vote existant
-└─ Exemple : `/modifier_vote 1 Aston Villa`
+└─ Exemple : `/modifier_vote 1 Liverpool`
 
 `/supprimer_vote <numéro du match>`
 └─ Pour supprimer un de vos votes
@@ -93,7 +97,7 @@ def setup_info_commands(bot):
             )
             return
         message = """**Oyé, Oyé,
-⚽ La Ligue des Champions reprend demain avec les huitièmes de finale ! ⚽
+⚽ La Ligue des Champions reprend avec les huitièmes de finale ! ⚽
 🔥 Les meilleurs clubs d'Europe s'affrontent pour une place en quarts de finale ! 🔥
 
 La SARL organise son grand jeu "Road to Munich", avec des récompenses à la clé ! 🎁🏆
@@ -110,30 +114,30 @@ Note : Les huitièmes et quarts de finale constituent une première phase, suivi
 
 🔴 Matchs des huitièmes de finale 🔴
 Aller :
-Mardi 4 mars 2025 :
-🕕 18h45 : Club Bruges 🇧🇪 vs. Aston Villa 🏴󠁧󠁢󠁥󠁮󠁧󠁿
-🕘 21h00 : Real Madrid 🇪🇸 vs. Atlético Madrid 🇪🇸
-🕘 21h00 : PSV Eindhoven 🇳🇱 vs. Arsenal 🏴󠁧󠁢󠁥󠁮󠁧󠁿
-🕘 21h00 : Borussia Dortmund 🇩🇪 vs. Lille 🇫🇷
+Mardi 10 mars 2026 :
+🕕 18h45 : Galatasaray 🇹🇷 vs. Liverpool 🏴󠁧󠁢󠁥󠁮󠁧󠁿
+🕘 21h00 : Newcastle 🏴󠁧󠁢󠁥󠁮󠁧󠁿 vs. Barcelone 🇪🇸
+🕘 21h00 : Atlético Madrid 🇪🇸 vs. Tottenham 🏴󠁧󠁢󠁥󠁮󠁧󠁿
+🕘 21h00 : Atalanta 🇮🇹 vs. Bayern 🇩🇪
 
-Mercredi 5 mars 2025 :
-🕕 18h45 : Feyenoord 🇳🇱 vs. Inter Milan 🇮🇹
-🕘 21h00 : Benfica 🇵🇹 vs. FC Barcelone 🇪🇸
-🕘 21h00 : Bayern Munich 🇩🇪 vs. Bayer Leverkusen 🇩🇪
-🕘 21h00 : Paris Saint-Germain 🇫🇷 vs. Liverpool 🏴󠁧󠁢󠁥󠁮󠁧󠁿
+Mercredi 11 mars 2026 :
+🕕 18h45 : Leverkusen 🇩🇪 vs. Arsenal 🏴󠁧󠁢󠁥󠁮󠁧󠁿
+🕘 21h00 : Paris-SG 🇫🇷 vs. Chelsea 🏴󠁧󠁢󠁥󠁮󠁧󠁿
+🕘 21h00 : Bodø/Glimt 🇳🇴 vs. Sporting 🇵🇹
+🕘 21h00 : Real Madrid 🇪🇸 vs. Manchester City 🏴󠁧󠁢󠁥󠁮󠁧󠁿
 
 Retour :
-Mardi 11 mars 2025 :
-🕕 18h45 : FC Barcelone 🇪🇸 vs. Benfica 🇵🇹
-🕘 21h00 : Inter Milan 🇮🇹 vs. Feyenoord 🇳🇱
-🕘 21h00 : Bayer Leverkusen 🇩🇪 vs. Bayern Munich 🇩🇪
-🕘 21h00 : Liverpool 🏴󠁧󠁢󠁥󠁮󠁧󠁿 vs. Paris Saint-Germain 🇫🇷
+Mardi 17 mars 2026 :
+🕕 18h45 : Arsenal 🏴󠁧󠁢󠁥󠁮󠁧󠁿 vs. Leverkusen 🇩🇪
+🕘 21h00 : Chelsea 🏴󠁧󠁢󠁥󠁮󠁧󠁿 vs. Paris-SG 🇫🇷
+🕘 21h00 : Sporting 🇵🇹 vs. Bodø/Glimt 🇳🇴
+🕘 21h00 : Manchester City 🏴󠁧󠁢󠁥󠁮󠁧󠁿 vs. Real Madrid 🇪🇸
 
-Mercredi 12 mars 2025 :
-🕕 18h45 : Lille 🇫🇷 vs. Borussia Dortmund 🇩🇪
-🕘 21h00 : Atlético Madrid 🇪🇸 vs. Real Madrid 🇪🇸
-🕘 21h00 : Arsenal 🏴󠁧󠁢󠁥󠁮󠁧󠁿 vs. PSV Eindhoven 🇳🇱
-🕘 21h00 : Aston Villa 🏴󠁧󠁢󠁥󠁮󠁧󠁿 vs. Club Bruges 🇧🇪
+Mercredi 18 mars 2026 :
+🕕 18h45 : Liverpool 🏴󠁧󠁢󠁥󠁮󠁧󠁿 vs. Galatasaray 🇹🇷
+🕘 21h00 : Barcelone 🇪🇸 vs. Newcastle 🏴󠁧󠁢󠁥󠁮󠁧󠁿
+🕘 21h00 : Tottenham 🏴󠁧󠁢󠁥󠁮󠁧󠁿 vs. Atlético Madrid 🇪🇸
+🕘 21h00 : Bayern 🇩🇪 vs. Atalanta 🇮🇹
 
 ---
 📜 Règlement du concours
@@ -183,7 +187,7 @@ Pénalité : Chaque match non pronostiqué à temps entraîne une pénalité de 
                 for phase, phase_matches in MATCHES_PHASES.items():
                     if match_id in phase_matches:
                         team1, team2 = phase_matches[match_id]
-                        phase_name = "Finale"
+                        phase_name = PHASE_LABELS.get(phase, phase)
                         recap_message += f"**Match {match_id}** ({phase_name}) : {team1} vs {team2}\n"
                         recap_message += f"➡️ Son vote : **{voted_team}**\n\n"
                         match_found = True
@@ -196,14 +200,14 @@ Pénalité : Chaque match non pronostiqué à temps entraîne une pénalité de 
             total_votes = len(user_votes)
             matches_restants = len(MATCHES) - sum(1 for v in user_votes if v['match_id'] in MATCHES)
             
-            recap_message += f"**📈 Statistiques de la finale :**\n"
+            recap_message += f"**📈 Statistiques (matchs en cours) :**\n"
             recap_message += f"- Votes effectués : **{total_votes}/{len(MATCHES)}**\n"
             
             if matches_restants > 0:
                 recap_message += f"- Matches restants à voter : **{matches_restants}**\n"
                 recap_message += f"\n💡 Utilisez `/help_vote` pour voir la liste des matches disponibles."
             else:
-                recap_message += f"\n✅ {interaction.user.mention} a voté pour tous les matches de la finale !"
+                recap_message += f"\n✅ {interaction.user.mention} a voté pour tous les matches en cours !"
 
             await interaction.response.send_message(recap_message)
             

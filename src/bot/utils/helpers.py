@@ -18,13 +18,13 @@ def validate_team(match_id, team):
     """Valide si une équipe est valide pour un match donné"""
     match_info = get_match_info(match_id)
     if not match_info:
-        return False, None, None
+        return False, None, None, None
     
     team1, team2 = match_info
     team = team.strip()
     
     if team.lower() not in [team1.lower(), team2.lower()]:
-        return False, team1, team2
+        return False, team1, team2, None
     
     # Retourner le nom exact de l'équipe (pour garder la casse correcte)
     exact_team = team1 if team.lower() == team1.lower() else team2

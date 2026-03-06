@@ -19,7 +19,7 @@ def setup_vote_commands(bot):
     # Commande de vote
     @bot.tree.command(name="vote", description="Voter pour une équipe dans un match spécifique")
     @app_commands.describe(
-        match_id="Numéro du match (ex: 15 pour la finale)",
+        match_id="Numéro du match (voir /help_vote pour la liste)",
         team="Nom de l'équipe pour laquelle voter"
     )
     async def vote_slash(interaction: discord.Interaction, match_id: int, team: str):
@@ -57,7 +57,7 @@ def setup_vote_commands(bot):
             if match_id not in MATCHES:
                 await interaction.response.send_message(
                     f"❌ Match {match_id} invalide. Les matchs disponibles sont :\n"
-                    "**Finale** : 15",
+                    f"{format_match_list()}",
                     ephemeral=True
                 )
                 return
@@ -149,7 +149,7 @@ def setup_vote_commands(bot):
             # Vérifier si le match existe
             if match_id not in MATCHES:
                 await interaction.response.send_message(
-                    f"❌ Match {match_id} invalide. Les matchs disponibles sont :\n**Finale** : 15",
+                    f"❌ Match {match_id} invalide. Les matchs disponibles sont :\n{format_match_list()}",
                     ephemeral=True
                 )
                 return

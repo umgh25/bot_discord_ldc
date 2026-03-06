@@ -23,13 +23,22 @@ SETTINGS_TABLE = "settings"
 
 # Définir les phases de la compétition
 MATCHES_PHASES = {
-    "finale": {
-        15: ("Club Bruges", "Aston Villa")
+    "8e_finale_aller": {
+        # Manche 1 sur 2 - Mar. 10/03
+        1: ("Galatasaray", "Liverpool"),          # Mar. 10/03 18:45
+        2: ("Newcastle", "Barcelone"),            # Mar. 10/03 21:00
+        3: ("Atlético Madrid", "Tottenham"),      # Mar. 10/03 21:00
+        4: ("Atalanta", "Bayern"),                # Mar. 10/03 21:00
+        # Manche 1 sur 2 - Mer. 11/03
+        5: ("Leverkusen", "Arsenal"),             # Mer. 11/03 18:45
+        6: ("Paris-SG", "Chelsea"),               # Mer. 11/03 21:00
+        7: ("Bodø/Glimt", "Sporting"),            # Mer. 11/03 21:00
+        8: ("Real Madrid", "Manchester City"),    # Mer. 11/03 21:00
     }
 }
 
-# Pour les commandes actives, n'utiliser que les matchs actuels
-MATCHES = MATCHES_PHASES.get("finale", {})
+# Pour les commandes actives, utiliser les 8èmes de finale aller
+MATCHES = MATCHES_PHASES.get("8e_finale_aller", {})
 
 # Vérification des variables obligatoires
 def validate_config():
