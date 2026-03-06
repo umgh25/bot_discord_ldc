@@ -112,8 +112,7 @@ Note : Les huitièmes et quarts de finale constituent une première phase, suivi
 
 ---
 
-🔴 Matchs des huitièmes de finale 🔴
-Aller :
+🔴 Huitièmes de finale (double confrontation) 🔴
 Mardi 10 mars 2026 :
 🕕 18h45 : Galatasaray 🇹🇷 vs. Liverpool 🏴󠁧󠁢󠁥󠁮󠁧󠁿
 🕘 21h00 : Newcastle 🏴󠁧󠁢󠁥󠁮󠁧󠁿 vs. Barcelone 🇪🇸
@@ -148,7 +147,10 @@ Pénalité : Chaque match non pronostiqué à temps entraîne une pénalité de 
 
 🚀 Préparez-vous, la SARL reprend du service ! 🚀"""
 
-        await interaction.response.send_message(message)
+        await interaction.response.send_message(
+            f"@everyone\n{message}",
+            allowed_mentions=discord.AllowedMentions(everyone=True)
+        )
 
     # Commande pour afficher le récapitulatif de vos votes dans le channel
     @bot.tree.command(name="recap", description="Affiche un récapitulatif de vos votes dans le channel.")
