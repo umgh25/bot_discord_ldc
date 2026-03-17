@@ -9,6 +9,7 @@ load_dotenv(dotenv_path=env_path)
 # Configuration Discord
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
 CHANNEL_ID = os.getenv('CHANNEL_ID')
+GUILD_ID = os.getenv('GUILD_ID')
 ENV = os.getenv('ENV', 'prod').lower()
 
 # Configuration Supabase

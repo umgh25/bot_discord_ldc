@@ -14,6 +14,7 @@ from ..utils.helpers import check_channel
 def setup_admin_commands(bot):
     """Configure toutes les commandes d'administration"""
     @bot.tree.command(name="closevote", description="Ferme/ouvre les votes (admin seulement)")
+    @app_commands.default_permissions(administrator=True)
     async def closevote(interaction: discord.Interaction):
         if not check_channel(interaction):
             await interaction.response.send_message(

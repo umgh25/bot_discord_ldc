@@ -6,7 +6,7 @@ sys.path.append('../database')
 sys.path.append('./commands')
 sys.path.append('./utils')
 
-from config.settings import DISCORD_TOKEN, CHANNEL_ID, validate_config, log_dev
+from config.settings import DISCORD_TOKEN, CHANNEL_ID, GUILD_ID, validate_config, log_dev
 from src.database.operations import supabase
 from .commands.vote import setup_vote_commands
 from .commands.info import setup_info_commands
@@ -38,8 +38,13 @@ async def on_ready():
             print(f"Canal trouvé : #{channel.name}")
         else:
             print("⚠️ ATTENTION : Le canal spécifié n'a pas été trouvé !")
-        synced = await bot.tree.sync()
-        print(f"Slash commands synchronisées : {len(synced)}")
+        if GUILD_ID:
+            guild = discord.Object(id=int(GUILD_ID))
+            synced = await bot.tree.sync(guild=guild)
+            print(f"Slash commands synchronisées (guild {GUILD_ID}) : {len(synced)}")
+        else:
+            synced = await bot.tree.sync()
+            print(f"Slash commands synchronisées (global) : {len(synced)}")
     except Exception as e:
         print(f"Erreur lors de la synchronisation des slash commands : {e}")
 
