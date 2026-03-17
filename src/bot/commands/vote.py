@@ -8,7 +8,7 @@ sys.path.append('../../database')
 sys.path.append('../utils')
 
 from config.settings import MATCHES
-from src.database.operations import save_vote, supabase
+from src.database.operations import save_vote, supabase, get_votes_open
 from ..utils.helpers import check_channel, validate_team, format_match_list
 
 # Dictionnaire pour gérer les verrous des votes
@@ -26,6 +26,13 @@ def setup_vote_commands(bot):
         if not check_channel(interaction):
             await interaction.response.send_message(
                 f"❌ Cette commande ne peut être utilisée que dans le canal <#{interaction.channel_id}>",
+                ephemeral=True
+            )
+            return
+
+        if not get_votes_open():
+            await interaction.response.send_message(
+                "🔒 Les votes sont actuellement **fermés**. Revenez plus tard.",
                 ephemeral=True
             )
             return
@@ -72,6 +79,16 @@ def setup_vote_commands(bot):
                     ephemeral=True
                 )
                 return
+
+            # Empêcher de revoter via /vote si un vote existe déjà
+            existing = supabase.table("votes").select("choice").eq("user_id", user_id).eq("match_id", match_id).execute()
+            if existing.data:
+                await interaction.response.send_message(
+                    f"ℹ️ {interaction.user.mention}, tu as déjà voté pour ce match.\n"
+                    f"Utilise `/modifier_vote {match_id} <équipe>` pour changer ton vote.",
+                    ephemeral=True
+                )
+                return
             
             # Attendre un court instant pour éviter les doublons
             await asyncio.sleep(0.5)
@@ -110,6 +127,13 @@ def setup_vote_commands(bot):
                 ephemeral=True
             )
             return
+
+        if not get_votes_open():
+            await interaction.response.send_message(
+                "🔒 Les votes sont actuellement **fermés**.",
+                ephemeral=True
+            )
+            return
         user_id = str(interaction.user.id)
         
         try:
@@ -140,6 +164,13 @@ def setup_vote_commands(bot):
         if not check_channel(interaction):
             await interaction.response.send_message(
                 f"❌ Cette commande ne peut être utilisée que dans le canal <#{interaction.channel_id}>",
+                ephemeral=True
+            )
+            return
+
+        if not get_votes_open():
+            await interaction.response.send_message(
+                "🔒 Les votes sont actuellement **fermés**.",
                 ephemeral=True
             )
             return

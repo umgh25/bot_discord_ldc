@@ -7,12 +7,41 @@ sys.path.append('../../database')
 sys.path.append('../utils')
 
 from config.settings import MATCHES
-from src.database.operations import add_points, get_leaderboard, reset_points
+from src.database.operations import add_points, get_leaderboard, reset_points, get_votes_open, set_votes_open
 from ..utils.helpers import check_channel
 
 # Commandes d'administration
 def setup_admin_commands(bot):
     """Configure toutes les commandes d'administration"""
+    @bot.tree.command(name="closevote", description="Ferme/ouvre les votes (admin seulement)")
+    async def closevote(interaction: discord.Interaction):
+        if not check_channel(interaction):
+            await interaction.response.send_message(
+                f"❌ Cette commande ne peut être utilisée que dans le canal <#{interaction.channel_id}>",
+                ephemeral=True
+            )
+            return
+        if not interaction.user.guild_permissions.administrator:
+            await interaction.response.send_message(
+                "❌ Seuls les administrateurs peuvent ouvrir/fermer les votes.",
+                ephemeral=True
+            )
+            return
+
+        current = get_votes_open()
+        new_state = not current
+        success = set_votes_open(new_state)
+        if not success:
+            await interaction.response.send_message(
+                "❌ Impossible de changer l'état des votes (BDD).",
+                ephemeral=True
+            )
+            return
+
+        await interaction.response.send_message(
+            "✅ Votes **ouverts**." if new_state else "🔒 Votes **fermés**."
+        )
+
     # Commande pour attribuer des points à un utilisateur
     @bot.tree.command(name="points", description="Attribuer des points à un utilisateur (admin seulement)")
     async def point_slash(interaction: discord.Interaction, membre: discord.Member, match_id: int, point_value: int):

@@ -113,6 +113,24 @@ def get_channel():
         return result.data[0]["channel_id"]
     return None
 
+@handle_db_errors(default_return=True)
+def get_votes_open() -> bool:
+    """
+    Indique si les votes sont ouverts.
+    Par défaut True (si la colonne n'existe pas ou pas de settings).
+    """
+    result = supabase.table(SETTINGS_TABLE).select("votes_open").eq("id", 1).execute()
+    if result.data and len(result.data) > 0:
+        value = result.data[0].get("votes_open")
+        return True if value is None else bool(value)
+    return True
+
+@handle_db_errors(default_return=False)
+def set_votes_open(is_open: bool) -> bool:
+    """Ouvre/ferme les votes via la table settings (id=1)."""
+    supabase.table(SETTINGS_TABLE).upsert({"id": 1, "votes_open": bool(is_open)}).execute()
+    return True
+
 @handle_db_errors(default_return=(False, 0))
 def reset_points(user_id: str = None) -> tuple[bool, int]:
     """Réinitialise les points d'un utilisateur ou de tous les utilisateurs"""
