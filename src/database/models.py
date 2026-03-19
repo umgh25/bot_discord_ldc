@@ -53,9 +53,15 @@ def handle_db_errors(default_return=None):
 # Fonction pour insérer ou mettre à jour un enregistrement dans une table
 def upsert_record(table: str, data: dict, conditions: dict):
     """Insère ou met à jour un enregistrement dans une table"""
-    existing = supabase.table(table).select("*").eq(**conditions).execute()
+    query = supabase.table(table).select("*")
+    for key, value in conditions.items():
+        query = query.eq(key, value)
+    existing = query.execute()
     if existing.data:
-        return supabase.table(table).update(data).eq(**conditions).execute()
+        update_query = supabase.table(table).update(data)
+        for key, value in conditions.items():
+            update_query = update_query.eq(key, value)
+        return update_query.execute()
     else:
         return supabase.table(table).insert(data).execute()
 # Fonction pour compter les enregistrements dans une table avec conditions optionnelles
