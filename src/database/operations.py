@@ -56,7 +56,7 @@ def update_leaderboard(user_id: str) -> bool:
     # Insérer ou mettre à jour le leaderboard
     upsert_record(
         table=LEADERBOARD_TABLE,
-        data={"points": total_points},
+        data={"user_id": str(user_id), "points": total_points},
         conditions={"user_id": user_id}
     )
     # Supprimer les points
