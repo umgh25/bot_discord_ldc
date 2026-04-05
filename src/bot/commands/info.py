@@ -6,12 +6,13 @@ sys.path.append('../../../config')
 sys.path.append('../../database')
 sys.path.append('../utils')
 
-from config.settings import MATCHES, MATCHES_PHASES
+from config.settings import MATCHES, MATCHES_PHASES, ACTIVE_MATCH_PHASE
 from src.database.operations import supabase
 from ..utils.helpers import check_channel, format_match_list
 
 PHASE_LABELS = {
     "8e_finale_aller": "8e de finale (aller)",
+    "quart_finale_aller": "Quart de finale (aller)",
 }
 
 def setup_info_commands(bot):
@@ -37,11 +38,11 @@ def setup_info_commands(bot):
 **📝 Commandes principales :**
 `/vote <numéro du match> <nom de l'équipe>`
 └─ Pour voter pour une équipe
-└─ Exemple : `/vote 1 Galatasaray`
+└─ Exemple : `/vote 1 Real Madrid`
 
 `/modifier_vote <numéro du match> <nom de l'équipe>`
 └─ Pour modifier un vote existant
-└─ Exemple : `/modifier_vote 1 Liverpool`
+└─ Exemple : `/modifier_vote 1 Bayern`
 
 `/supprimer_vote <numéro du match>`
 └─ Pour supprimer un de vos votes
@@ -97,46 +98,31 @@ def setup_info_commands(bot):
             )
             return
         message = """**Oyé, Oyé,
-⚽ La Ligue des Champions reprend avec les huitièmes de finale ! ⚽
-🔥 Les meilleurs clubs d'Europe s'affrontent pour une place en quarts de finale ! 🔥
+⚽ La Ligue des Champions continue avec les quarts de finale ! ⚽
+🔥 Les meilleurs clubs d'Europe s'affrontent pour une place en demi-finale ! 🔥
 
 La SARL organise son grand jeu "Road to Munich", avec des récompenses à la clé ! 🎁🏆
 
 Trêve de bavardages, voyons ce qui nous attend !
 
 💰 Les récompenses
-Vainqueur des huitièmes et quarts de finale : Carte cadeau de 5€ 🏅
+Vainqueur des quarts de finale : Carte cadeau de 5€ 🏅
 Vainqueur des demi-finales et de la finale : Carte cadeau de 5€ 🏆
 
-Note : Les huitièmes et quarts de finale constituent une première phase, suivie des demi-finales et de la finale en seconde phase.
+Note : Les quarts de finale précèdent les demi-finales et la finale.
 
 ---
 
-🔴 Huitièmes de finale (double confrontation) 🔴
-Mardi 10 mars 2026 :
-🕕 18h45 : Galatasaray 🇹🇷 vs. Liverpool 🏴󠁧󠁢󠁥󠁮󠁧󠁿
-🕘 21h00 : Newcastle 🏴󠁧󠁢󠁥󠁮󠁧󠁿 vs. Barcelone 🇪🇸
-🕘 21h00 : Atlético Madrid 🇪🇸 vs. Tottenham 🏴󠁧󠁢󠁥󠁮󠁧󠁿
-🕘 21h00 : Atalanta 🇮🇹 vs. Bayern 🇩🇪
+🔴 Quarts de finale (double confrontation) · Manche 1 sur 2 🔴
+Mardi 7 avril 2026 :
+🕘 21h00 : Real Madrid 🇪🇸 vs. Bayern 🇩🇪
+🕘 21h00 : Sporting 🇵🇹 vs. Arsenal 🏴󠁧󠁢󠁥󠁮󠁧󠁿
 
-Mercredi 11 mars 2026 :
-🕕 18h45 : Leverkusen 🇩🇪 vs. Arsenal 🏴󠁧󠁢󠁥󠁮󠁧󠁿
-🕘 21h00 : Paris-SG 🇫🇷 vs. Chelsea 🏴󠁧󠁢󠁥󠁮󠁧󠁿
-🕘 21h00 : Bodø/Glimt 🇳🇴 vs. Sporting 🇵🇹
-🕘 21h00 : Real Madrid 🇪🇸 vs. Manchester City 🏴󠁧󠁢󠁥󠁮󠁧󠁿
+Mercredi 8 avril 2026 :
+🕘 21h00 : Barcelone 🇪🇸 vs. Atlético Madrid 🇪🇸
+🕘 21h00 : Paris-SG 🇫🇷 vs. Liverpool 🏴󠁧󠁢󠁥󠁮󠁧󠁿
 
-Retour :
-Mardi 17 mars 2026 :
-🕕 18h45 : Arsenal 🏴󠁧󠁢󠁥󠁮󠁧󠁿 vs. Leverkusen 🇩🇪
-🕘 21h00 : Chelsea 🏴󠁧󠁢󠁥󠁮󠁧󠁿 vs. Paris-SG 🇫🇷
-🕘 21h00 : Sporting 🇵🇹 vs. Bodø/Glimt 🇳🇴
-🕘 21h00 : Manchester City 🏴󠁧󠁢󠁥󠁮󠁧󠁿 vs. Real Madrid 🇪🇸
-
-Mercredi 18 mars 2026 :
-🕕 18h45 : Liverpool 🏴󠁧󠁢󠁥󠁮󠁧󠁿 vs. Galatasaray 🇹🇷
-🕘 21h00 : Barcelone 🇪🇸 vs. Newcastle 🏴󠁧󠁢󠁥󠁮󠁧󠁿
-🕘 21h00 : Tottenham 🏴󠁧󠁢󠁥󠁮󠁧󠁿 vs. Atlético Madrid 🇪🇸
-🕘 21h00 : Bayern 🇩🇪 vs. Atalanta 🇮🇹
+Manche 2 sur 2 : dates et horaires à confirmer.
 
 ---
 📜 Règlement du concours
@@ -184,16 +170,24 @@ Pénalité : Chaque match non pronostiqué à temps entraîne une pénalité de 
                 match_id = vote['match_id']
                 voted_team = vote['choice']
                 
-                # Chercher le match dans toutes les phases
                 match_found = False
-                for phase, phase_matches in MATCHES_PHASES.items():
-                    if match_id in phase_matches:
-                        team1, team2 = phase_matches[match_id]
-                        phase_name = PHASE_LABELS.get(phase, phase)
-                        recap_message += f"**Match {match_id}** ({phase_name}) : {team1} vs {team2}\n"
-                        recap_message += f"➡️ Son vote : **{voted_team}**\n\n"
-                        match_found = True
-                        break
+                if match_id in MATCHES:
+                    team1, team2 = MATCHES[match_id]
+                    phase_name = PHASE_LABELS.get(ACTIVE_MATCH_PHASE, ACTIVE_MATCH_PHASE)
+                    recap_message += f"**Match {match_id}** ({phase_name}) : {team1} vs {team2}\n"
+                    recap_message += f"➡️ Son vote : **{voted_team}**\n\n"
+                    match_found = True
+                else:
+                    for phase, phase_matches in MATCHES_PHASES.items():
+                        if phase == ACTIVE_MATCH_PHASE:
+                            continue
+                        if match_id in phase_matches:
+                            team1, team2 = phase_matches[match_id]
+                            phase_name = PHASE_LABELS.get(phase, phase)
+                            recap_message += f"**Match {match_id}** ({phase_name}) : {team1} vs {team2}\n"
+                            recap_message += f"➡️ Son vote : **{voted_team}**\n\n"
+                            match_found = True
+                            break
                 
                 if not match_found:
                     recap_message += f"**Match {match_id}** : Vote pour **{voted_team}**\n\n"

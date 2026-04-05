@@ -22,24 +22,30 @@ POINTS_TABLE = "points"
 LEADERBOARD_TABLE = "leaderboard"
 SETTINGS_TABLE = "settings"
 
-# Définir les phases de la compétition
+# Définir les phases de la compétition (phases passées conservées pour l'historique des votes)
 MATCHES_PHASES = {
     "8e_finale_aller": {
-        # Manche 1 sur 2 - Mar. 10/03
-        1: ("Galatasaray", "Liverpool"),          # Mar. 10/03 18:45
-        2: ("Newcastle", "Barcelone"),            # Mar. 10/03 21:00
-        3: ("Atlético Madrid", "Tottenham"),      # Mar. 10/03 21:00
-        4: ("Atalanta", "Bayern"),                # Mar. 10/03 21:00
-        # Manche 1 sur 2 - Mer. 11/03
-        5: ("Leverkusen", "Arsenal"),             # Mer. 11/03 18:45
-        6: ("Paris-SG", "Chelsea"),               # Mer. 11/03 21:00
-        7: ("Bodø/Glimt", "Sporting"),            # Mer. 11/03 21:00
-        8: ("Real Madrid", "Manchester City"),    # Mer. 11/03 21:00
-    }
+        1: ("Galatasaray", "Liverpool"),
+        2: ("Newcastle", "Barcelone"),
+        3: ("Atlético Madrid", "Tottenham"),
+        4: ("Atalanta", "Bayern"),
+        5: ("Leverkusen", "Arsenal"),
+        6: ("Paris-SG", "Chelsea"),
+        7: ("Bodø/Glimt", "Sporting"),
+        8: ("Real Madrid", "Manchester City"),
+    },
+    "quart_finale_aller": {
+        # Manche 1 sur 2 — Mar. 07/04 & Mer. 08/04, 21:00
+        9: ("Real Madrid", "Bayern"),
+        10: ("Sporting", "Arsenal"),
+        11: ("Barcelone", "Atlético Madrid"),
+        12: ("Paris-SG", "Liverpool"),
+    },
 }
 
-# Pour les commandes actives, utiliser les 8èmes de finale aller
-MATCHES = MATCHES_PHASES.get("8e_finale_aller", {})
+# Phase active pour les votes et la liste des matchs
+ACTIVE_MATCH_PHASE = "quart_finale_aller"
+MATCHES = MATCHES_PHASES.get(ACTIVE_MATCH_PHASE, {})
 
 # Vérification des variables obligatoires
 def validate_config():
