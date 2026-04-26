@@ -15,6 +15,38 @@ PHASE_LABELS = {
     "quart_finale_aller": "Quart de finale (aller)",
 }
 
+
+def format_quarts_ids_help_message() -> str:
+    """Message pour !quarts : IDs des matchs actifs + rappel des slash commands."""
+    titre = PHASE_LABELS.get(ACTIVE_MATCH_PHASE, ACTIVE_MATCH_PHASE)
+    lignes = [f"**Quarts de finale — {titre}**\n"]
+
+    if ACTIVE_MATCH_PHASE == "quart_finale_aller":
+        lignes.append(
+            "En base, les **8e de finale** sont les IDs **1 à 8**. "
+            "Les **quarts** sont les IDs **9 à 12** (pas de conflit avec les anciens votes).\n"
+        )
+
+    lignes.append("**Matchs à voter :**")
+    for mid in sorted(MATCHES.keys()):
+        a, b = MATCHES[mid]
+        lignes.append(f"• **{mid}** — {a} vs {b}")
+
+    lignes.extend(
+        [
+            "",
+            "**Voter (commandes slash `/`, pas `!`) :**",
+            "`/vote <id> <équipe>` — ex. `/vote 9 Real Madrid`",
+            "`/modifier_vote <id> <équipe>`",
+            "`/supprimer_vote <id>`",
+            "`/help_vote` — guide complet",
+            "",
+            "Le préfixe `!` sert aux commandes texte ; **le vote se fait avec `/`.**",
+        ]
+    )
+    return "\n".join(lignes)
+
+
 def setup_info_commands(bot):
     """Configure toutes les commandes d'information"""
     # Commande d'aide pour les commandes de vote
@@ -38,15 +70,15 @@ def setup_info_commands(bot):
 **📝 Commandes principales :**
 `/vote <numéro du match> <nom de l'équipe>`
 └─ Pour voter pour une équipe
-└─ Exemple : `/vote 1 Real Madrid`
+└─ Exemple : `/vote 9 Real Madrid`
 
 `/modifier_vote <numéro du match> <nom de l'équipe>`
 └─ Pour modifier un vote existant
-└─ Exemple : `/modifier_vote 1 Bayern`
+└─ Exemple : `/modifier_vote 9 Bayern`
 
 `/supprimer_vote <numéro du match>`
 └─ Pour supprimer un de vos votes
-└─ Exemple : `/supprimer_vote 1`
+└─ Exemple : `/supprimer_vote 9`
 
 **📊 Commandes de consultation :**
 `/recap`
@@ -63,7 +95,7 @@ def setup_info_commands(bot):
 `/points @utilisateur <numéro du match> <points>`
 └─ Attribuer des points à un utilisateur
 └─ Points : 1 = victoire, -1 = absence
-└─ Exemple : `/points @Pierre 1 1`
+└─ Exemple : `/points @Pierre 9 1`
 
 `/reset_points @utilisateur`
 └─ Réinitialiser les points d'un utilisateur
@@ -77,6 +109,8 @@ def setup_info_commands(bot):
 
         # Ajouter dynamiquement la liste des matchs disponibles
         help_message += format_match_list()
+
+        help_message += "\n\n**💬 Rappel texte :** tape `!quarts` dans le canal pour revoir les numéros des quarts et les commandes slash."
 
         # Ajouter les rappels importants
         help_message += "\n\n**⚠️ Rappels importants :**"
@@ -192,16 +226,15 @@ Pénalité : Chaque match non pronostiqué à temps entraîne une pénalité de 
                 if not match_found:
                     recap_message += f"**Match {match_id}** : Vote pour **{voted_team}**\n\n"
             
-            # Statistiques uniquement pour les matchs actuels
-            total_votes = len(user_votes)
-            matches_restants = len(MATCHES) - sum(1 for v in user_votes if v['match_id'] in MATCHES)
-            
+            votes_phase_actuelle = sum(1 for v in user_votes if v["match_id"] in MATCHES)
+            matches_restants = len(MATCHES) - votes_phase_actuelle
+
             recap_message += f"**📈 Statistiques (matchs en cours) :**\n"
-            recap_message += f"- Votes effectués : **{total_votes}/{len(MATCHES)}**\n"
-            
+            recap_message += f"- Votes effectués : **{votes_phase_actuelle}/{len(MATCHES)}**\n"
+
             if matches_restants > 0:
                 recap_message += f"- Matches restants à voter : **{matches_restants}**\n"
-                recap_message += f"\n💡 Utilisez `/help_vote` pour voir la liste des matches disponibles."
+                recap_message += f"\n💡 `/help_vote` ou `!quarts` pour les numéros de match."
             else:
                 recap_message += f"\n✅ {interaction.user.mention} a voté pour tous les matches en cours !"
 
@@ -240,6 +273,9 @@ Pénalité : Chaque match non pronostiqué à temps entraîne une pénalité de 
                 match_id = vote["match_id"]
                 team = vote["choice"]
 
+                if match_id not in votes_par_match:
+                    continue
+
                 if user_id not in users_cache:
                     try:
                         user = await bot.fetch_user(int(user_id))
@@ -274,10 +310,11 @@ Pénalité : Chaque match non pronostiqué à temps entraîne une pénalité de 
                 for voter, vote_choice in match_votants.items():
                     message += f"🔹 {voter} → {vote_choice}\n"
 
-            total_users = len({vote["user_id"] for vote in all_votes})
-            total_votes = len(all_votes)
+            votes_affiches = [v for v in all_votes if v["match_id"] in MATCHES]
+            total_users = len({v["user_id"] for v in votes_affiches})
+            total_votes_phase = len(votes_affiches)
 
-            message += f"\n👥 **{total_users} participants** | 🗳️ **{total_votes} votes**"
+            message += f"\n👥 **{total_users} participants** | 🗳️ **{total_votes_phase} votes** (phase en cours)"
 
             await interaction.response.send_message(message[:2000])  # Discord limite à 2000 caractères
 
@@ -320,12 +357,11 @@ Pénalité : Chaque match non pronostiqué à temps entraîne une pénalité de 
                     recap_message += f"**Match {match_id}** : {team1} vs {team2}\n"
                     recap_message += f"➡️ Vote : **{voted_team}**\n\n"
             
-            # Ajouter le nombre total de votes
-            total_votes = len(user_votes)
-            matches_restants = len(MATCHES) - total_votes
-            
-            recap_message += f"**📈 Statistiques :**\n"
-            recap_message += f"└─ Votes effectués : **{total_votes}/{len(MATCHES)}**\n"
+            votes_actuels = sum(1 for v in user_votes if v["match_id"] in MATCHES)
+            matches_restants = len(MATCHES) - votes_actuels
+
+            recap_message += f"**📈 Statistiques (phase en cours) :**\n"
+            recap_message += f"└─ Votes effectués : **{votes_actuels}/{len(MATCHES)}**\n"
             recap_message += f"└─ Matches restants : **{matches_restants}**\n"
 
             if matches_restants > 0:
@@ -337,4 +373,13 @@ Pénalité : Chaque match non pronostiqué à temps entraîne une pénalité de 
             
         except Exception as e:
             print(f"Erreur lors de la récupération des votes: {str(e)}")
-            await interaction.response.send_message(f"❌ Une erreur s'est produite lors de la récupération des votes.") 
+            await interaction.response.send_message(f"❌ Une erreur s'est produite lors de la récupération des votes.")
+
+    @bot.command(
+        name="quarts",
+        aliases=["matchs_quarts", "ids_quarts"],
+        help="Affiche les numéros de match des quarts et comment voter (slash /vote, etc.)",
+    )
+    async def quarts_prefix(ctx: commands.Context):
+        """Commande préfixe !quarts — même canal que les autres commandes (filtré par on_command)."""
+        await ctx.send(format_quarts_ids_help_message())

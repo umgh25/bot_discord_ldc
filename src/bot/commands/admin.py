@@ -8,7 +8,7 @@ sys.path.append('../utils')
 
 from config.settings import MATCHES
 from src.database.operations import add_points, get_leaderboard, reset_points, get_votes_open, set_votes_open
-from ..utils.helpers import check_channel
+from ..utils.helpers import check_channel, format_match_list
 
 # Commandes d'administration
 def setup_admin_commands(bot):
@@ -63,7 +63,7 @@ def setup_admin_commands(bot):
         try:
             if match_id not in MATCHES:
                 await interaction.response.send_message(
-                    f"❌ Match {match_id} invalide. Les matchs disponibles sont :\n**Finale** : 15",
+                    f"❌ Match {match_id} invalide. Matchs disponibles :{format_match_list()}",
                     ephemeral=True
                 )
                 return
