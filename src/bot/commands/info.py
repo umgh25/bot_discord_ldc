@@ -13,30 +13,39 @@ from ..utils.helpers import check_channel, format_match_list
 PHASE_LABELS = {
     "8e_finale_aller": "8e de finale (aller)",
     "quart_finale_aller": "Quart de finale (aller)",
+    "demi_finale": "Demi-finale",
+    "finale": "Finale",
 }
 
 
-def format_quarts_ids_help_message() -> str:
-    """Message pour !quarts : IDs des matchs actifs + rappel des slash commands."""
+def format_phase_ids_help_message() -> str:
+    """Message pour !matchs / !finale : IDs actifs + rappel des slash commands."""
     titre = PHASE_LABELS.get(ACTIVE_MATCH_PHASE, ACTIVE_MATCH_PHASE)
-    lignes = [f"**Quarts de finale — {titre}**\n"]
+    lignes = [f"**{titre}** — matchs en cours\n"]
 
     if ACTIVE_MATCH_PHASE == "quart_finale_aller":
         lignes.append(
-            "En base, les **8e de finale** sont les IDs **1 à 8**. "
-            "Les **quarts** sont les IDs **9 à 12** (pas de conflit avec les anciens votes).\n"
+            "IDs en base : **8e** 1–8 · **quarts** 9–12 (pas de conflit avec les anciens votes).\n"
+        )
+    elif ACTIVE_MATCH_PHASE == "demi_finale":
+        lignes.append("IDs en base : **8e** 1–8 · **quarts** 9–12 · **demis** 13–14.\n")
+    elif ACTIVE_MATCH_PHASE == "finale":
+        lignes.append(
+            "IDs en base : **8e** 1–8 · **quarts** 9–12 · **demis** 13–14 · **finale** **15**.\n"
         )
 
-    lignes.append("**Matchs à voter :**")
+    lignes.append("**Match(s) à voter :**")
     for mid in sorted(MATCHES.keys()):
         a, b = MATCHES[mid]
         lignes.append(f"• **{mid}** — {a} vs {b}")
 
+    exemple_id = next(iter(sorted(MATCHES.keys())), 15)
+    exemple_equipe = MATCHES[exemple_id][0]
     lignes.extend(
         [
             "",
             "**Voter (commandes slash `/`, pas `!`) :**",
-            "`/vote <id> <équipe>` — ex. `/vote 9 Real Madrid`",
+            f"`/vote <id> <équipe>` — ex. `/vote {exemple_id} {exemple_equipe}`",
             "`/modifier_vote <id> <équipe>`",
             "`/supprimer_vote <id>`",
             "`/help_vote` — guide complet",
@@ -70,15 +79,15 @@ def setup_info_commands(bot):
 **📝 Commandes principales :**
 `/vote <numéro du match> <nom de l'équipe>`
 └─ Pour voter pour une équipe
-└─ Exemple : `/vote 9 Real Madrid`
+└─ Exemple : `/vote 15 Paris-SG`
 
 `/modifier_vote <numéro du match> <nom de l'équipe>`
 └─ Pour modifier un vote existant
-└─ Exemple : `/modifier_vote 9 Bayern`
+└─ Exemple : `/modifier_vote 15 Arsenal`
 
 `/supprimer_vote <numéro du match>`
 └─ Pour supprimer un de vos votes
-└─ Exemple : `/supprimer_vote 9`
+└─ Exemple : `/supprimer_vote 15`
 
 **📊 Commandes de consultation :**
 `/recap`
@@ -95,7 +104,7 @@ def setup_info_commands(bot):
 `/points @utilisateur <numéro du match> <points>`
 └─ Attribuer des points à un utilisateur
 └─ Points : 1 = victoire, -1 = absence
-└─ Exemple : `/points @Pierre 9 1`
+└─ Exemple : `/points @Pierre 15 1`
 
 `/reset_points @utilisateur`
 └─ Réinitialiser les points d'un utilisateur
@@ -110,7 +119,7 @@ def setup_info_commands(bot):
         # Ajouter dynamiquement la liste des matchs disponibles
         help_message += format_match_list()
 
-        help_message += "\n\n**💬 Rappel texte :** tape `!quarts` dans le canal pour revoir les numéros des quarts et les commandes slash."
+        help_message += "\n\n**💬 Rappel texte :** tape `!finale` ou `!matchs` pour revoir le numéro du match et les commandes slash."
 
         # Ajouter les rappels importants
         help_message += "\n\n**⚠️ Rappels importants :**"
@@ -132,31 +141,23 @@ def setup_info_commands(bot):
             )
             return
         message = """**Oyé, Oyé,
-⚽ La Ligue des Champions continue avec les quarts de finale ! ⚽
-🔥 Les meilleurs clubs d'Europe s'affrontent pour une place en demi-finale ! 🔥
+⚽ La Ligue des Champions — **FINALE** ! ⚽
+🔥 Paris-SG et Arsenal s'affrontent pour soulever la coupe ! 🔥
 
 La SARL organise son grand jeu "Road to Munich", avec des récompenses à la clé ! 🎁🏆
 
 Trêve de bavardages, voyons ce qui nous attend !
 
 💰 Les récompenses
-Vainqueur des quarts de finale : Carte cadeau de 5€ 🏅
-Vainqueur des demi-finales et de la finale : Carte cadeau de 5€ 🏆
-
-Note : Les quarts de finale précèdent les demi-finales et la finale.
+Vainqueur de la finale : Carte cadeau de 5€ 🏆
 
 ---
 
-🔴 Quarts de finale (double confrontation) · Manche 1 sur 2 🔴
-Mardi 7 avril 2026 :
-🕘 21h00 : Real Madrid 🇪🇸 vs. Bayern 🇩🇪
-🕘 21h00 : Sporting 🇵🇹 vs. Arsenal 🏴󠁧󠁢󠁥󠁮󠁧󠁿
+🏆 **Finale** — match unique 🏆
+**Paris-SG 🇫🇷 vs. Arsenal 🏴󠁧󠁢󠁥󠁮󠁧󠁿**
 
-Mercredi 8 avril 2026 :
-🕘 21h00 : Barcelone 🇪🇸 vs. Atlético Madrid 🇪🇸
-🕘 21h00 : Paris-SG 🇫🇷 vs. Liverpool 🏴󠁧󠁢󠁥󠁮󠁧󠁿
-
-Manche 2 sur 2 : dates et horaires à confirmer.
+Pour voter : `/vote 15 Paris-SG` ou `/vote 15 Arsenal`
+Rappel : `!finale` ou `!matchs` pour revoir le numéro de match.
 
 ---
 📜 Règlement du concours
@@ -234,7 +235,7 @@ Pénalité : Chaque match non pronostiqué à temps entraîne une pénalité de 
 
             if matches_restants > 0:
                 recap_message += f"- Matches restants à voter : **{matches_restants}**\n"
-                recap_message += f"\n💡 `/help_vote` ou `!quarts` pour les numéros de match."
+                recap_message += f"\n💡 `/help_vote` ou `!finale` pour le numéro de match."
             else:
                 recap_message += f"\n✅ {interaction.user.mention} a voté pour tous les matches en cours !"
 
@@ -376,10 +377,10 @@ Pénalité : Chaque match non pronostiqué à temps entraîne une pénalité de 
             await interaction.response.send_message(f"❌ Une erreur s'est produite lors de la récupération des votes.")
 
     @bot.command(
-        name="quarts",
-        aliases=["matchs_quarts", "ids_quarts"],
-        help="Affiche les numéros de match des quarts et comment voter (slash /vote, etc.)",
+        name="matchs",
+        aliases=["finale", "quarts", "matchs_quarts", "ids_matchs"],
+        help="Affiche les numéros de match de la phase en cours et comment voter",
     )
-    async def quarts_prefix(ctx: commands.Context):
-        """Commande préfixe !quarts — même canal que les autres commandes (filtré par on_command)."""
-        await ctx.send(format_quarts_ids_help_message())
+    async def matchs_prefix(ctx: commands.Context):
+        """Commande préfixe !matchs / !finale — filtré par on_command dans main.py."""
+        await ctx.send(format_phase_ids_help_message())

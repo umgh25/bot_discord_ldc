@@ -45,10 +45,13 @@ MATCHES_PHASES = {
         13: ("Paris-SG", "Bayern"),
         14: ("Arsenal", "Atlético Madrid"),
     },
+    "finale": {
+        15: ("Paris-SG", "Arsenal"),
+    },
 }
 
 # Phase active pour les votes et la liste des matchs
-ACTIVE_MATCH_PHASE = "demi_finale"
+ACTIVE_MATCH_PHASE = "finale"
 MATCHES = MATCHES_PHASES.get(ACTIVE_MATCH_PHASE, {})
 
 # Vérification des variables obligatoires
